@@ -6,3 +6,4 @@ numpy>=1.21.0
 networkx>=2.8.0
 Pillow>=9.0.0
 pyaudio>=0.2.11
+qrcode>=7.4.0

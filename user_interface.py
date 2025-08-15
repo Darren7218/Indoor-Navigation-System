@@ -11,7 +11,7 @@ from typing import Optional, List
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QTextEdit, 
                              QComboBox, QSlider, QGroupBox, QGridLayout,
-                             QProgressBar, QMessageBox, QFrame)
+                             QProgressBar, QMessageBox, QFrame, QAction, QMenuBar)
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QPalette, QColor, QPixmap, QPainter
 import pyttsx3
@@ -21,7 +21,8 @@ import cv2
 from qr_detection import QRCodeDetector
 from qr_reader import QRCodeReader, LocationData
 from route_guidance import RouteGuidance, NavigationRoute
-from config import UI_SETTINGS, AUDIO_SETTINGS
+from fic_navigation_integration import FICTNavigationSystem
+from config import UI_SETTINGS, AUDIO_SETTINGS, THEMES
 
 class AudioFeedback:
     """Handles text-to-speech and audio feedback"""
@@ -86,27 +87,38 @@ class CameraThread(QThread):
         """Main thread loop for camera processing"""
         try:
             self.detector = QRCodeDetector(self.camera_index)
+            
+            # Check if camera was initialized successfully
+            if not self.detector.cap or not self.detector.cap.isOpened():
+                self.error_occurred.emit("Failed to initialize camera")
+                return
+            
             self.is_running = True
             
             while self.is_running:
                 if self.detector.cap and self.detector.cap.isOpened():
                     ret, frame = self.detector.cap.read()
                     if ret:
-                        # Process frame for QR detection
-                        color_regions = self.detector._find_color_regions(frame)
-                        detected_qrs = []
-                        
-                        for color, roi, bbox in color_regions:
-                            if self.detector._detect_qr_in_region(roi):
-                                detected_qrs.append((color, roi, bbox))
-                        
-                        # Emit signals
-                        self.frame_ready.emit(frame)
-                        if detected_qrs:
-                            self.qr_detected.emit(detected_qrs)
-                        
-                        # Small delay to prevent overwhelming the system
-                        time.sleep(0.033)  # ~30 FPS
+                        try:
+                            # Process frame for QR detection
+                            color_regions = self.detector._find_color_regions(frame)
+                            detected_qrs = []
+                            
+                            for color, roi, bbox in color_regions:
+                                if self.detector._detect_qr_in_region(roi):
+                                    detected_qrs.append((color, roi, bbox))
+                            
+                            # Emit signals
+                            self.frame_ready.emit(frame)
+                            if detected_qrs:
+                                self.qr_detected.emit(detected_qrs)
+                            
+                            # Small delay to prevent overwhelming the system
+                            time.sleep(0.033)  # ~30 FPS
+                        except Exception as e:
+                            # Continue processing even if frame processing fails
+                            logging.warning(f"Frame processing error: {e}")
+                            continue
                     else:
                         self.error_occurred.emit("Failed to read camera frame")
                         break
@@ -134,6 +146,7 @@ class NavigationInterface(QMainWindow):
         self.audio_feedback = AudioFeedback()
         self.qr_reader = QRCodeReader()
         self.route_guidance = RouteGuidance()
+        self.fict_nav = FICTNavigationSystem()
         
         self.current_location = None
         self.current_route = None
@@ -147,8 +160,8 @@ class NavigationInterface(QMainWindow):
         self.setWindowTitle("Indoor Navigation System - Accessible Interface")
         self.setGeometry(100, 100, UI_SETTINGS['window_width'], UI_SETTINGS['window_height'])
         
-        # Set high contrast theme
-        self._apply_high_contrast_theme()
+        # Create menu bar
+        self._create_menu_bar()
         
         # Create central widget and layout
         central_widget = QWidget()
@@ -165,30 +178,106 @@ class NavigationInterface(QMainWindow):
         self._create_control_section(main_layout)
         self._create_status_section(main_layout)
         
+        # Apply current theme
+        self._apply_theme(UI_SETTINGS['theme'])
+        
         # Set focus for keyboard navigation
         self.setFocusPolicy(Qt.StrongFocus)
     
-    def _apply_high_contrast_theme(self):
-        """Apply high contrast color scheme"""
-        if not UI_SETTINGS['high_contrast']:
+    def _create_menu_bar(self):
+        """Create menu bar with theme switching"""
+        menubar = self.menuBar()
+        
+        # View menu
+        view_menu = menubar.addMenu('View')
+        
+        # Theme submenu
+        theme_menu = view_menu.addMenu('Theme')
+        
+        # Light theme action
+        light_action = QAction('Light Theme', self)
+        light_action.setCheckable(True)
+        light_action.setChecked(UI_SETTINGS['theme'] == 'light')
+        light_action.triggered.connect(lambda: self._switch_theme('light'))
+        theme_menu.addAction(light_action)
+        
+        # Dark theme action
+        dark_action = QAction('Dark Theme', self)
+        dark_action.setCheckable(True)
+        dark_action.setChecked(UI_SETTINGS['theme'] == 'dark')
+        dark_action.triggered.connect(lambda: self._switch_theme('dark'))
+        theme_menu.addAction(dark_action)
+        
+        # High contrast toggle
+        contrast_action = QAction('High Contrast', self)
+        contrast_action.setCheckable(True)
+        contrast_action.setChecked(UI_SETTINGS['high_contrast'])
+        contrast_action.triggered.connect(self._toggle_high_contrast)
+        view_menu.addAction(contrast_action)
+    
+    def _switch_theme(self, theme_name):
+        """Switch between light and dark themes"""
+        if theme_name in THEMES:
+            UI_SETTINGS['theme'] = theme_name
+            self._apply_theme(theme_name)
+            self.audio_feedback.speak(f"Switched to {theme_name} theme")
+    
+    def _toggle_high_contrast(self):
+        """Toggle high contrast mode"""
+        UI_SETTINGS['high_contrast'] = not UI_SETTINGS['high_contrast']
+        self._apply_theme(UI_SETTINGS['theme'])
+        status = "enabled" if UI_SETTINGS['high_contrast'] else "disabled"
+        self.audio_feedback.speak(f"High contrast {status}")
+    
+    def _apply_theme(self, theme_name):
+        """Apply the specified theme"""
+        if theme_name not in THEMES:
             return
         
-        # Create high contrast palette
+        theme = THEMES[theme_name]
+        
+        # Create palette
         palette = QPalette()
-        palette.setColor(QPalette.Window, QColor(0, 0, 0))
-        palette.setColor(QPalette.WindowText, QColor(255, 255, 255))
-        palette.setColor(QPalette.Base, QColor(0, 0, 0))
-        palette.setColor(QPalette.AlternateBase, QColor(50, 50, 50))
-        palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 255))
-        palette.setColor(QPalette.ToolTipText, QColor(0, 0, 0))
-        palette.setColor(QPalette.Text, QColor(255, 255, 255))
-        palette.setColor(QPalette.Button, QColor(100, 100, 100))
-        palette.setColor(QPalette.ButtonText, QColor(255, 255, 255))
-        palette.setColor(QPalette.BrightText, QColor(255, 255, 0))
-        palette.setColor(QPalette.Highlight, QColor(255, 255, 0))
-        palette.setColor(QPalette.HighlightedText, QColor(0, 0, 0))
+        
+        if UI_SETTINGS['high_contrast']:
+            # High contrast mode
+            if theme_name == 'light':
+                palette.setColor(QPalette.Window, QColor(255, 255, 255))
+                palette.setColor(QPalette.WindowText, QColor(0, 0, 0))
+                palette.setColor(QPalette.Base, QColor(255, 255, 255))
+                palette.setColor(QPalette.Text, QColor(0, 0, 0))
+                palette.setColor(QPalette.Button, QColor(0, 0, 0))
+                palette.setColor(QPalette.ButtonText, QColor(255, 255, 255))
+            else:  # dark
+                palette.setColor(QPalette.Window, QColor(0, 0, 0))
+                palette.setColor(QPalette.WindowText, QColor(255, 255, 255))
+                palette.setColor(QPalette.Base, QColor(0, 0, 0))
+                palette.setColor(QPalette.Text, QColor(255, 255, 255))
+                palette.setColor(QPalette.Button, QColor(255, 255, 255))
+                palette.setColor(QPalette.ButtonText, QColor(0, 0, 0))
+        else:
+            # Normal theme mode
+            palette.setColor(QPalette.Window, QColor(theme['window_bg']))
+            palette.setColor(QPalette.WindowText, QColor(theme['text_color']))
+            palette.setColor(QPalette.Base, QColor(theme['window_bg']))
+            palette.setColor(QPalette.AlternateBase, QColor(theme['button_bg']))
+            palette.setColor(QPalette.Text, QColor(theme['text_color']))
+            palette.setColor(QPalette.Button, QColor(theme['button_bg']))
+            palette.setColor(QPalette.ButtonText, QColor(theme['button_text']))
+            palette.setColor(QPalette.Highlight, QColor(theme['highlight_bg']))
+            palette.setColor(QPalette.HighlightedText, QColor(theme['highlight_text']))
         
         self.setPalette(palette)
+        
+        # Update status indicator colors
+        if hasattr(self, 'status_indicator'):
+            self._update_status_colors(theme)
+    
+    def _update_status_colors(self, theme):
+        """Update status indicator colors based on theme"""
+        if hasattr(self, 'status_indicator'):
+            # This will be updated when status changes
+            pass
     
     def _create_header_section(self, layout):
         """Create the header section with title and status"""
@@ -270,7 +359,9 @@ class NavigationInterface(QMainWindow):
         dest_layout.addWidget(QLabel("Destination:"))
         self.destination_combo = QComboBox()
         self.destination_combo.setFont(self._get_medium_font())
-        self.destination_combo.addItems(["Select destination...", "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"])
+        # Populate FICT destinations
+        dests = ["Select destination..."] + self.fict_nav.get_available_destinations()
+        self.destination_combo.addItems(dests)
         dest_layout.addWidget(self.destination_combo)
         
         self.calculate_route_btn = QPushButton("Calculate Route")
@@ -448,6 +539,8 @@ class NavigationInterface(QMainWindow):
         
         if location_data:
             self.current_location = location_data
+            # Update FICT current location if possible
+            self.fict_nav.set_current_location_from_locationdata(location_data)
             self._update_location_display(location_data)
             self._log_status(f"QR code decoded: {location_data.node_id}")
             
@@ -487,8 +580,9 @@ class NavigationInterface(QMainWindow):
             return
         
         try:
-            # Calculate route
-            route = self.route_guidance.calculate_route(self.current_location, destination)
+            # Calculate route via FICT integration (uses QR payload + FICT catalog)
+            route_info = self.fict_nav.get_navigation_route(destination)
+            route = route_info['route'] if route_info else None
             
             if route:
                 self.current_route = route

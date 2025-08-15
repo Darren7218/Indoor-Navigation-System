@@ -1,65 +1,42 @@
-# Indoor Navigation System
+# FICT Building Navigation System
 
-A comprehensive indoor navigation system designed specifically for visually impaired users, featuring QR code detection, route guidance, and an accessible user interface.
+A specialized indoor navigation system designed for the FICT Building, featuring QR code detection, route guidance, and an accessible user interface optimized for visually impaired users.
 
 ## 🎯 Features
 
-### 3.3.1 QR Code Detection
+### QR Code Detection & Generation
+- **Color-coded QR codes**: Blue for Ground Floor, Red for First Floor
 - **Real-time webcam capture** with continuous frame processing
-- **Color-coded QR detection** for red, green, and blue QR codes
 - **HSV color segmentation** for robust detection under varying lighting conditions
-- **Size threshold detection** to enter reading mode automatically
-- **Fast HSV calibration** for consistent detection across different environments
-- **Voice cues and beep sounds** for centering assistance
+- **Automated QR generation** for all 149 FICT Building locations
 
-### 3.3.2 QR Code Reading
-- **Dual decoding system**:
-  - Primary: OpenCV's QRCodeDetector
-  - Fallback: Pyzbar library for improved robustness
-- **Predefined schema support** containing:
-  - Node ID
-  - Coordinates (x, y)
-  - Floor level
-  - Available exits
-- **Text-to-speech location announcements**
-- **Automatic route guidance initiation**
+### Navigation System
+- **149 FICT Building locations** across 2 floors
+- **A* pathfinding algorithm** with accessibility considerations
+- **Turn-by-turn instructions** with distance and time estimates
+- **Floor change detection** and routing
+- **Location search** by name, description, or type
 
-### 3.3.3 Route Guidance
-- **Weighted graph representation** of floor maps
-- **A* pathfinding algorithm** with straight-line distance heuristic
-- **Dijkstra's algorithm fallback** when A* fails
-- **Accessibility scoring** for route optimization
-- **Turn-by-turn instructions** with distances and checkpoints
-- **Strategic QR code scanning** for location confirmation
-- **Route recalculation** capabilities
-
-### 3.3.4 User Interface
+### User Interface
+- **Light/Dark theme switching** with high contrast mode
 - **Accessible design** optimized for visually impaired users
-- **High-contrast interface** with large, clear text
 - **Audio feedback system** with text-to-speech
-- **Tactile feedback** through beep sounds
-- **Keyboard shortcuts** for easy navigation
 - **Real-time camera feed** with detection overlays
-- **Progress tracking** and status monitoring
+- **Menu-driven navigation** with keyboard shortcuts
 
 ## 🛠️ Technical Specifications
 
-### Programming Language
-- **Primary**: Python 3.11+ (for rapid prototyping and extensive library support)
-- **Alternative**: C++17 (for high-performance components if needed)
-
 ### Core Libraries
-- **OpenCV 4.7+**: Computer vision, color segmentation, QR detection
-- **Pyzbar**: QR code decoding fallback
-- **PyQt5/Qt6**: Advanced UI features and accessibility
+- **OpenCV 4.7+**: Computer vision and QR detection
+- **PyQt5**: Advanced UI with accessibility features
 - **NetworkX**: Graph algorithms and pathfinding
-- **NumPy**: Numerical processing
 - **pyttsx3**: Text-to-speech (offline compatible)
+- **qrcode**: QR code generation
 
 ### Hardware Requirements
 - **Computer**: Laptop or PC with 720p/1080p webcam
 - **Audio**: Internal or external speakers
-- **Optional**: Phone-based sensors (compass for mobile implementations)
+- **Storage**: 100MB for QR codes and maps
 
 ## 📦 Installation
 
@@ -79,7 +56,12 @@ cd IndoorNavProj
 pip install -r requirements.txt
 ```
 
-### Step 3: Verify Installation
+### Step 3: Generate FICT Building QR Codes
+```bash
+python generate_fic_building_qr.py
+```
+
+### Step 4: Verify Installation
 ```bash
 python main.py --help
 ```
@@ -95,7 +77,12 @@ python main.py
 python main.py --gui
 ```
 
-#### Command Line Testing Mode
+#### FICT Navigation Mode
+```bash
+python main.py --fict
+```
+
+#### Command Line Testing
 ```bash
 python main.py --cli
 ```
@@ -106,26 +93,31 @@ python main.py --cli
    - Launch the application
    - System initializes with audio feedback
 
-2. **Camera Setup**
+2. **Theme Selection**
+   - Use View → Theme menu to switch between Light and Dark themes
+   - Toggle High Contrast mode for accessibility
+
+3. **Camera Setup**
    - Click "Start Camera" or press 'C'
    - System begins scanning for color-coded QR codes
 
-3. **QR Code Detection**
-   - Point camera at red, green, or blue QR codes
+4. **QR Code Detection**
+   - Point camera at FICT Building QR codes
+   - Blue QR codes = Ground Floor locations
+   - Red QR codes = First Floor locations
    - System automatically detects and enters reading mode
-   - Voice feedback confirms detection
 
-4. **Location Identification**
+5. **Location Identification**
    - QR code is decoded to determine current location
    - Location is announced via text-to-speech
    - Current position displayed on interface
 
-5. **Route Planning**
+6. **Route Planning**
    - Select destination from dropdown menu
    - Click "Calculate Route" or press 'R'
    - System calculates optimal path using A* algorithm
 
-6. **Navigation**
+7. **Navigation**
    - Turn-by-turn instructions are provided
    - Audio cues guide user through route
    - Progress tracking shows completion status
@@ -140,45 +132,37 @@ python main.py --cli
 - **Volume Slider**: Adjust audio volume (0-100%)
 - **Speech Rate**: Control TTS speed (50-300 words/min)
 - **Audio Toggle**: Enable/disable all audio feedback
-- **Test Audio**: Verify audio system functionality
 
-## 🗺️ Floor Map Configuration
+## 🗺️ FICT Building Layout
 
-The system uses a weighted graph representation where:
-- **Nodes**: Doors, intersections, landmarks, exits
-- **Edges**: Corridors with distance and accessibility weights
-- **Weights**: Distance + accessibility penalties
+### Ground Floor (Blue QR Codes)
+- **77 locations** including:
+  - Main entrance and exits
+  - Lecture halls and classrooms
+  - Administrative offices
+  - Common areas and facilities
 
-### Sample Floor Layout
-```
-A1 (Entrance) ----10m---- B1 (Intersection) ----10m---- C1 (Intersection)
-    |                           |                           |
-    |                           |                           |
-   10m                         10m                         10m
-    |                           |                           |
-    v                           v                           v
-A2 (Intersection) ----10m---- B2 (Intersection) ----10m---- C2 (Intersection)
-    |                           |                           |
-    |                           |                           |
-   10m                         10m                         10m
-    |                           |                           |
-    v                           v                           v
-A3 (Landmark) ----10m---- B3 (Landmark) ----10m---- C3 (Exit)
-```
+### First Floor (Red QR Codes)
+- **72 locations** including:
+  - Faculty offices
+  - Research laboratories
+  - Conference rooms
+  - Student facilities
+
+### Important Locations
+- **4 special QR codes** for key areas:
+  - Main entrance
+  - Emergency exits
+  - Information desk
+  - Accessibility features
 
 ## 🔧 Configuration
 
-### Color Detection Thresholds
-Adjust HSV values in `config.py` for different lighting conditions:
+### Theme Settings
 ```python
-COLOR_THRESHOLDS = {
-    'red': {
-        'lower1': [0, 100, 100],
-        'upper1': [10, 255, 255],
-        'lower2': [160, 100, 100],
-        'upper2': [180, 255, 255]
-    },
-    # ... green and blue thresholds
+UI_SETTINGS = {
+    'theme': 'dark',  # 'light' or 'dark'
+    'high_contrast': True
 }
 ```
 
@@ -192,56 +176,42 @@ AUDIO_SETTINGS = {
 }
 ```
 
-### Navigation Parameters
-```python
-NAVIGATION = {
-    'recalculation_threshold': 5.0,    # Meters
-    'checkpoint_distance': 10.0,       # Meters
-    'turn_announcement_distance': 3.0  # Meters
-}
-```
-
 ## 🧪 Testing
 
-### Command Line Testing
+### System Testing
 ```bash
-python main.py --cli
+python test_system.py
 ```
-This mode tests:
-- QR detection system
-- Route calculation algorithms
-- Audio feedback systems
-- System integration
 
-### Individual Module Testing
+### QR Code Generation Testing
 ```bash
-# Test QR detection
-python qr_detection.py
+python test_qr_generator.py
+```
 
-# Test QR reading
-python qr_reader.py
-
-# Test route guidance
-python route_guidance.py
-
-# Test user interface
-python user_interface.py
+### Navigation Testing
+```bash
+python debug_test.py
 ```
 
 ## 📁 Project Structure
 ```
 IndoorNavProj/
-├── main.py                 # Main system entry point
-├── config.py               # Configuration and settings
-├── qr_detection.py         # QR code detection module
-├── qr_reader.py            # QR code reading module
-├── route_guidance.py       # Route calculation module
-├── user_interface.py       # Accessible UI module
-├── requirements.txt        # Python dependencies
-├── README.md              # This file
-├── data/                  # Floor maps and schemas
-├── logs/                  # System logs
-└── cache/                 # Audio and temporary files
+├── main.py                           # Main system entry point
+├── config.py                         # Configuration and settings
+├── qr_detection.py                   # QR code detection module
+├── qr_reader.py                      # QR code reading module
+├── route_guidance.py                 # Route calculation module
+├── user_interface.py                 # Accessible UI module
+├── fic_navigation_integration.py     # FICT Building navigation
+├── generate_fic_building_qr.py       # QR code generation
+├── requirements.txt                  # Python dependencies
+├── README.md                         # This file
+├── data/qr_schemas/fic_building/     # Generated QR codes
+│   ├── ground_floor/                 # 77 Blue QR codes
+│   ├── first_floor/                  # 72 Red QR codes
+│   └── important_locations/          # 4 Large QR codes
+├── logs/                             # System logs
+└── cache/                            # Temporary files
 ```
 
 ## 🔍 Troubleshooting
@@ -264,7 +234,7 @@ IndoorNavProj/
 - Check QR code quality and size
 
 #### Route Calculation Fails
-- Verify floor map data is properly formatted
+- Verify FICT Building data is properly loaded
 - Check that start and destination nodes exist
 - Ensure graph connectivity
 
@@ -288,6 +258,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
+- FICT Building administration for location data
 - OpenCV community for computer vision capabilities
 - PyQt developers for accessible UI framework
 - NetworkX team for graph algorithms
@@ -302,4 +273,4 @@ For technical support or questions:
 
 ---
 
-**Note**: This system is designed for educational and research purposes. Always test thoroughly in your specific environment before deploying in production settings.
+**Note**: This system is specifically designed for the FICT Building. Always test thoroughly in your specific environment before deploying in production settings.

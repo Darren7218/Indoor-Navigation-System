@@ -54,7 +54,36 @@ UI_SETTINGS = {
     'font_size_large': 24,
     'font_size_medium': 18,
     'font_size_small': 14,
-    'high_contrast': True
+    'high_contrast': True,
+    'theme': 'dark'  # 'light' or 'dark'
+}
+
+# Theme configurations
+THEMES = {
+    'light': {
+        'window_bg': '#f0f0f0',
+        'text_color': '#000000',
+        'button_bg': '#e0e0e0',
+        'button_text': '#000000',
+        'highlight_bg': '#0078d4',
+        'highlight_text': '#ffffff',
+        'border_color': '#c0c0c0',
+        'status_online': '#28a745',
+        'status_offline': '#dc3545',
+        'warning_color': '#ffc107'
+    },
+    'dark': {
+        'window_bg': '#2d2d30',
+        'text_color': '#ffffff',
+        'button_bg': '#3e3e42',
+        'button_text': '#ffffff',
+        'highlight_bg': '#0078d4',
+        'highlight_text': '#ffffff',
+        'border_color': '#555555',
+        'status_online': '#28a745',
+        'status_offline': '#dc3545',
+        'warning_color': '#ffc107'
+    }
 }
 
 # File paths

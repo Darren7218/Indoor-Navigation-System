@@ -299,6 +299,15 @@ class RouteGuidance:
                     min_distance = distance
                     nearest_node = node_id
         
+        # If no node found on the specified floor, try to find any node
+        if nearest_node is None:
+            self.logger.warning(f"No nodes found on floor {floor_level}, searching all floors")
+            for node_id, node in self.node_data.items():
+                distance = self._calculate_distance(coordinates, node.coordinates)
+                if distance < min_distance:
+                    min_distance = distance
+                    nearest_node = node_id
+        
         return nearest_node
     
     def _build_route_segments(self, G: nx.Graph, path: List[str]) -> List[RouteSegment]:
@@ -312,12 +321,20 @@ class RouteGuidance:
             # Get edge data
             edge_data = G.get_edge_data(current_node, next_node)
             
+            # Use default values if edge data is missing
+            if edge_data is None:
+                edge_data = {
+                    'distance': 10.0,  # Default distance
+                    'direction': 'forward',
+                    'accessibility_penalty': 0.0
+                }
+            
             # Create segment
             segment = RouteSegment(
                 from_node=current_node,
                 to_node=next_node,
-                distance=edge_data['distance'],
-                direction=edge_data['direction'],
+                distance=edge_data.get('distance', 10.0),
+                direction=edge_data.get('direction', 'forward'),
                 instructions=self._generate_segment_instructions(current_node, next_node, edge_data),
                 accessibility_notes=self._generate_accessibility_notes(edge_data)
             )
@@ -328,31 +345,34 @@ class RouteGuidance:
     
     def _generate_segment_instructions(self, from_node: str, to_node: str, edge_data: Dict) -> str:
         """Generate human-readable instructions for a route segment"""
-        direction = edge_data['direction']
-        distance = edge_data['distance']
+        direction = edge_data.get('direction', 'forward')
+        distance = edge_data.get('distance', 10.0)
         
-        # Get node types for context
-        from_type = self.node_data[from_node].node_type
-        to_type = self.node_data[to_node].node_type
+        # Get node types for context (with safety checks)
+        from_type = self.node_data.get(from_node, None)
+        to_type = self.node_data.get(to_node, None)
+        
+        from_type_name = from_type.node_type if from_type else 'location'
+        to_type_name = to_type.node_type if to_type else 'location'
         
         instructions = f"Go {direction} for {distance:.1f} meters"
         
         # Add context-specific instructions
-        if from_type == 'intersection':
-            instructions += f" from the {from_type}"
-        elif from_type == 'landmark':
-            instructions += f" past the {from_type}"
+        if from_type_name == 'intersection':
+            instructions += f" from the {from_type_name}"
+        elif from_type_name == 'landmark':
+            instructions += f" past the {from_type_name}"
         
-        if to_type == 'landmark':
-            instructions += f" toward the {to_type}"
-        elif to_type == 'exit':
-            instructions += f" to the {to_type}"
+        if to_type_name == 'landmark':
+            instructions += f" toward the {to_type_name}"
+        elif to_type_name == 'exit':
+            instructions += f" to the {to_type_name}"
         
         return instructions
     
     def _generate_accessibility_notes(self, edge_data: Dict) -> str:
         """Generate accessibility notes for a route segment"""
-        penalty = edge_data['accessibility_penalty']
+        penalty = edge_data.get('accessibility_penalty', 0.0)
         
         if penalty > 3.0:
             return "Note: This route may have accessibility challenges"
