@@ -1,16 +1,50 @@
 """
 FICT Building Navigation Integration
-Connects QR detection with route guidance for indoor navigation
+Integrated navigation system for FICT Building with route guidance
 """
 
 import json
 import os
 import logging
+import networkx as nx
+import numpy as np
+import math
 from typing import Dict, Any, List, Optional, Tuple
+from dataclasses import dataclass
 from qr_detection import QRCodeDetector
-from route_guidance import RouteGuidance
 from qr_generator import ColoredQRGenerator
 from qr_reader import QRCodeReader, LocationData as QRReaderLocationData
+
+@dataclass
+class NavigationNode:
+    """Represents a node in the navigation graph"""
+    node_id: str
+    coordinates: Tuple[float, float]
+    floor_level: int
+    node_type: str  # 'intersection', 'door', 'landmark', 'exit'
+    exits: Dict[str, str]
+    accessibility_score: float  # 0.0 to 1.0, higher is more accessible
+
+@dataclass
+class RouteSegment:
+    """Represents a segment of the navigation route"""
+    from_node: str
+    to_node: str
+    distance: float
+    direction: str
+    instructions: str
+    accessibility_notes: str
+
+@dataclass
+class NavigationRoute:
+    """Complete navigation route with instructions"""
+    start_location: QRReaderLocationData
+    destination: str
+    total_distance: float
+    estimated_time: float
+    segments: List[RouteSegment]
+    checkpoints: List[str]
+    floor_changes: List[int]
 
 class FICTNavigationSystem:
     """
@@ -27,13 +61,22 @@ class FICTNavigationSystem:
         """
         self.config_file = config_file
         self.qr_detector = QRCodeDetector()
-        self.route_guidance = RouteGuidance()
         self.qr_generator = ColoredQRGenerator(config_file)
         
         # Load FICT Building location data
         self.fic_locations = self._load_fic_locations()
         self.current_location = None
         self.current_floor = None
+        
+        # Route guidance system
+        self.floor_graphs = {}  # floor_level -> NetworkX graph
+        self.node_data = {}     # node_id -> NavigationNode
+        self.walking_speed = 1.4  # m/s average walking speed
+        self.turn_penalty = 2.0   # seconds penalty for turns
+        self.floor_change_penalty = 30.0  # seconds penalty for floor changes
+        
+        # Build navigation graphs from FICT locations
+        self._build_fic_navigation_graphs()
         
         self.setup_logging()
     
@@ -364,15 +407,14 @@ class FICTNavigationSystem:
         # Check if floor change is needed
         floor_change_needed = self.current_floor != destination['floor_level']
         
-        # Calculate route using route guidance system
+        # Calculate route using integrated route guidance system
         # Convert current location to LocationData format
-        from qr_reader import LocationData
-        start_location_data = LocationData(
+        start_location_data = QRReaderLocationData(
             qr_data=json.dumps(self.current_location),
             confidence=1.0
         )
         
-        route = self.route_guidance.calculate_route(
+        route = self.calculate_route(
             start_location=start_location_data,
             destination=destination_id
         )
@@ -458,42 +500,35 @@ class FICTNavigationSystem:
     
     def _create_fallback_route(self, destination: Dict[str, Any]):
         """Create a simple fallback route when main routing fails."""
-        # Create a simple mock route object
-        class MockRoute:
-            def __init__(self):
-                self.segments = []
-                self.floor_changes = []
-                self.total_distance = 0.0
-                self.estimated_time = 0.0
+        # Create a proper NavigationRoute object instead of MockRoute
+        from qr_reader import LocationData
         
-        route = MockRoute()
+        # Create a mock start location
+        start_location = LocationData(
+            qr_data=json.dumps(self.current_location),
+            confidence=1.0
+        )
         
-        # Add basic route information
-        if self.current_location and destination:
-            # Calculate approximate distance
-            try:
-                start_coords = self.current_location.get('coordinates', '0,0')
-                end_coords = destination.get('coordinates', '0,0')
-                
-                if isinstance(start_coords, str) and isinstance(end_coords, str):
-                    start_x, start_y = map(float, start_coords.split(','))
-                    end_x, end_y = map(float, end_coords.split(','))
-                    
-                    distance = ((end_x - start_x) ** 2 + (end_y - start_y) ** 2) ** 0.5
-                    route.total_distance = distance
-                    route.estimated_time = distance / 1.4  # 1.4 m/s walking speed
-                    
-                    # Create a simple segment
-                    class MockSegment:
-                        def __init__(self, instructions):
-                            self.instructions = instructions
-                    
-                    route.segments = [MockSegment(f"Walk towards {destination.get('description', 'destination')}")]
-                    
-            except Exception:
-                # If coordinate parsing fails, use default values
-                route.total_distance = 50.0
-                route.estimated_time = 35.7  # 50m / 1.4 m/s
+        # Create a simple route segment
+        segment = RouteSegment(
+            from_node=self.current_location.get('location_id', 'START'),
+            to_node=destination.get('location_id', 'DESTINATION'),
+            distance=50.0,  # Default distance
+            direction='forward',
+            instructions=f"Walk towards {destination.get('description', 'destination')}",
+            accessibility_notes="Route is fully accessible"
+        )
+        
+        # Create the route object
+        route = NavigationRoute(
+            start_location=start_location,
+            destination=destination.get('location_id', 'DESTINATION'),
+            total_distance=50.0,
+            estimated_time=35.7,  # 50m / 1.4 m/s
+            segments=[segment],
+            checkpoints=[destination.get('location_id', 'DESTINATION')],
+            floor_changes=[]
+        )
         
         return route
     
@@ -570,6 +605,383 @@ class FICTNavigationSystem:
             location_info['location_id'] = location_id
             return location_info
         return None
+    
+    def _build_fic_navigation_graphs(self):
+        """Build navigation graphs from FICT Building locations"""
+        try:
+            # Group locations by floor
+            floor_locations = {}
+            for location_id, location_info in self.fic_locations.items():
+                floor_level = location_info.get('floor_level', '0')
+                if floor_level not in floor_locations:
+                    floor_locations[floor_level] = {}
+                floor_locations[floor_level][location_id] = location_info
+            
+            # Build graphs for each floor
+            for floor_level, locations in floor_locations.items():
+                self._build_floor_graph(floor_level, locations)
+            
+            logging.info(f"Built navigation graphs for {len(floor_locations)} floors")
+            
+        except Exception as e:
+            logging.error(f"Error building navigation graphs: {e}")
+    
+    def _build_floor_graph(self, floor_level: str, locations: Dict[str, Dict[str, Any]]):
+        """Build NetworkX graph for a specific floor"""
+        # Create new graph
+        G = nx.Graph()
+        
+        # Add nodes
+        for location_id, location_info in locations.items():
+            # Parse coordinates
+            coordinates = self._parse_coordinates(location_info.get('coordinates', '0,0'))
+            
+            # Determine node type
+            node_type = self._determine_node_type(location_info)
+            
+            # Create NavigationNode
+            nav_node = NavigationNode(
+                node_id=location_id,
+                coordinates=coordinates,
+                floor_level=int(floor_level),
+                node_type=node_type,
+                exits={},  # Will be populated when adding edges
+                accessibility_score=self._calculate_accessibility_score(node_type)
+            )
+            
+            self.node_data[location_id] = nav_node
+            G.add_node(location_id, pos=coordinates, type=node_type, accessibility=nav_node.accessibility_score)
+        
+        # Add edges between nearby locations (simplified connectivity)
+        self._add_floor_edges(G, locations)
+        
+        # Store the graph
+        self.floor_graphs[floor_level] = G
+    
+    def _parse_coordinates(self, coord_str: str) -> Tuple[float, float]:
+        """Parse coordinate string to tuple"""
+        try:
+            if isinstance(coord_str, str):
+                parts = coord_str.split(',')
+                if len(parts) >= 2:
+                    return (float(parts[0].strip()), float(parts[1].strip()))
+            return (0.0, 0.0)
+        except:
+            return (0.0, 0.0)
+    
+    def _determine_node_type(self, location_info: Dict[str, Any]) -> str:
+        """Determine node type based on location information"""
+        description = location_info.get('description', '').lower()
+        
+        if any(word in description for word in ['entrance', 'exit', 'door']):
+            return 'exit'
+        elif any(word in description for word in ['lecture', 'classroom', 'lab', 'office']):
+            return 'landmark'
+        elif any(word in description for word in ['corridor', 'hallway', 'passage']):
+            return 'intersection'
+        else:
+            return 'landmark'
+    
+    def _calculate_accessibility_score(self, node_type: str) -> float:
+        """Calculate accessibility score for a node"""
+        base_score = 1.0
+        
+        # Adjust based on node type
+        if node_type == 'exit':
+            base_score = 0.9
+        elif node_type == 'landmark':
+            base_score = 0.8
+        elif node_type == 'intersection':
+            base_score = 0.7
+        
+        return min(1.0, max(0.1, base_score))
+    
+    def _add_floor_edges(self, G: nx.Graph, locations: Dict[str, Dict[str, Any]]):
+        """Add edges between nearby locations on the same floor"""
+        location_ids = list(locations.keys())
+        
+        for i, loc1_id in enumerate(location_ids):
+            for j, loc2_id in enumerate(location_ids[i+1:], i+1):
+                loc1_info = locations[loc1_id]
+                loc2_info = locations[loc2_id]
+                
+                # Calculate distance between locations
+                coord1 = self._parse_coordinates(loc1_info.get('coordinates', '0,0'))
+                coord2 = self._parse_coordinates(loc2_info.get('coordinates', '0,0'))
+                distance = self._calculate_distance(coord1, coord2)
+                
+                # Add edge if locations are reasonably close (within 50 meters)
+                if distance <= 50.0:
+                    # Determine direction
+                    direction = self._calculate_direction(coord1, coord2)
+                    
+                    # Calculate accessibility penalty
+                    accessibility_penalty = self._calculate_accessibility_penalty(
+                        self.node_data[loc1_id].accessibility_score,
+                        self.node_data[loc2_id].accessibility_score
+                    )
+                    
+                    total_weight = distance + accessibility_penalty
+                    
+                    G.add_edge(loc1_id, loc2_id, 
+                              weight=total_weight,
+                              distance=distance,
+                              direction=direction,
+                              accessibility_penalty=accessibility_penalty)
+    
+    def _calculate_distance(self, pos1: Tuple[float, float], pos2: Tuple[float, float]) -> float:
+        """Calculate Euclidean distance between two points"""
+        return math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)
+    
+    def _calculate_direction(self, pos1: Tuple[float, float], pos2: Tuple[float, float]) -> str:
+        """Calculate direction from pos1 to pos2"""
+        dx = pos2[0] - pos1[0]
+        dy = pos2[1] - pos1[1]
+        
+        if abs(dx) > abs(dy):
+            return 'east' if dx > 0 else 'west'
+        else:
+            return 'north' if dy > 0 else 'south'
+    
+    def _calculate_accessibility_penalty(self, score1: float, score2: float) -> float:
+        """Calculate accessibility penalty for edge between two nodes"""
+        avg_score = (score1 + score2) / 2
+        return (1.0 - avg_score) * 5.0  # Penalty up to 5 meters
+    
+    def calculate_route(self, start_location: QRReaderLocationData, destination: str) -> Optional[NavigationRoute]:
+        """
+        Calculate optimal route from current location to destination
+        
+        Args:
+            start_location: Current location from QR code
+            destination: Target destination node ID
+            
+        Returns:
+            NavigationRoute object with complete route information
+        """
+        try:
+            # Check if destination exists
+            if destination not in self.node_data:
+                logging.error(f"Destination {destination} not found in navigation data")
+                return None
+            
+            # Check if start and destination are on same floor
+            start_floor = str(start_location.floor_level) if start_location.floor_level is not None else '0'
+            dest_floor = str(self.node_data[destination].floor_level)
+            
+            if start_floor != dest_floor:
+                return self._calculate_multi_floor_route(start_location, destination)
+            else:
+                return self._calculate_single_floor_route(start_location, destination)
+                
+        except Exception as e:
+            logging.error(f"Error calculating route: {e}")
+            return None
+    
+    def _calculate_single_floor_route(self, start_location: QRReaderLocationData, destination: str) -> NavigationRoute:
+        """Calculate route on a single floor"""
+        floor_level = str(start_location.floor_level) if start_location.floor_level is not None else '0'
+        
+        if floor_level not in self.floor_graphs:
+            logging.error(f"Floor {floor_level} not found in navigation data")
+            return None
+        
+        G = self.floor_graphs[floor_level]
+        
+        # Find nearest node to start location
+        # Handle coordinates from LocationData (might be string or tuple)
+        if start_location.coordinates:
+            if isinstance(start_location.coordinates, str):
+                start_coords = self._parse_coordinates(start_location.coordinates)
+            elif isinstance(start_location.coordinates, (list, tuple)):
+                start_coords = (float(start_location.coordinates[0]), float(start_location.coordinates[1]))
+            else:
+                start_coords = (0.0, 0.0)
+        else:
+            start_coords = (0.0, 0.0)
+        
+        start_node = self._find_nearest_node(start_coords, floor_level)
+        if not start_node:
+            logging.error("Could not find suitable start node")
+            return None
+        
+        # Use A* algorithm for pathfinding
+        try:
+            path = nx.astar_path(G, start_node, destination, weight='weight')
+            path_length = nx.astar_path_length(G, start_node, destination, weight='weight')
+        except nx.NetworkXNoPath:
+            logging.warning("No path found, trying Dijkstra's algorithm")
+            try:
+                path = nx.dijkstra_path(G, start_node, destination, weight='weight')
+                path_length = nx.dijkstra_path_length(G, start_node, destination, weight='weight')
+            except nx.NetworkXNoPath:
+                logging.error("No path found with any algorithm")
+                return None
+        
+        # Build route segments
+        segments = self._build_route_segments(G, path)
+        
+        # Calculate total metrics
+        total_distance = sum(seg.distance for seg in segments)
+        estimated_time = self._calculate_route_time(segments)
+        
+        # Create checkpoints
+        checkpoints = self._generate_checkpoints(path)
+        
+        route = NavigationRoute(
+            start_location=start_location,
+            destination=destination,
+            total_distance=total_distance,
+            estimated_time=estimated_time,
+            segments=segments,
+            checkpoints=checkpoints,
+            floor_changes=[]
+        )
+        
+        return route
+    
+    def _calculate_multi_floor_route(self, start_location: QRReaderLocationData, destination: str) -> NavigationRoute:
+        """Calculate route involving floor changes"""
+        # This is a simplified implementation
+        # In a real system, you'd need to handle stairs, elevators, etc.
+        logging.info("Multi-floor routing not fully implemented")
+        return None
+    
+    def _find_nearest_node(self, coordinates: Tuple[float, float], floor_level: str) -> Optional[str]:
+        """Find the nearest navigation node to given coordinates"""
+        min_distance = float('inf')
+        nearest_node = None
+        
+        for node_id, node in self.node_data.items():
+            if str(node.floor_level) == floor_level:
+                distance = self._calculate_distance(coordinates, node.coordinates)
+                if distance < min_distance:
+                    min_distance = distance
+                    nearest_node = node_id
+        
+        # If no node found on the specified floor, try to find any node
+        if nearest_node is None:
+            logging.warning(f"No nodes found on floor {floor_level}, searching all floors")
+            for node_id, node in self.node_data.items():
+                distance = self._calculate_distance(coordinates, node.coordinates)
+                if distance < min_distance:
+                    min_distance = distance
+                    nearest_node = node_id
+        
+        return nearest_node
+    
+    def _build_route_segments(self, G: nx.Graph, path: List[str]) -> List[RouteSegment]:
+        """Build route segments from path"""
+        segments = []
+        
+        for i in range(len(path) - 1):
+            current_node = path[i]
+            next_node = path[i + 1]
+            
+            # Get edge data
+            edge_data = G.get_edge_data(current_node, next_node)
+            
+            # Use default values if edge data is missing
+            if edge_data is None:
+                edge_data = {
+                    'distance': 10.0,  # Default distance
+                    'direction': 'forward',
+                    'accessibility_penalty': 0.0
+                }
+            
+            # Create segment
+            segment = RouteSegment(
+                from_node=current_node,
+                to_node=next_node,
+                distance=edge_data.get('distance', 10.0),
+                direction=edge_data.get('direction', 'forward'),
+                instructions=self._generate_segment_instructions(current_node, next_node, edge_data),
+                accessibility_notes=self._generate_accessibility_notes(edge_data)
+            )
+            
+            segments.append(segment)
+        
+        return segments
+    
+    def _generate_segment_instructions(self, from_node: str, to_node: str, edge_data: Dict) -> str:
+        """Generate human-readable instructions for a route segment"""
+        direction = edge_data.get('direction', 'forward')
+        distance = edge_data.get('distance', 10.0)
+        
+        # Get node types for context (with safety checks)
+        from_type = self.node_data.get(from_node, None)
+        to_type = self.node_data.get(to_node, None)
+        
+        from_type_name = from_type.node_type if from_type else 'location'
+        to_type_name = to_type.node_type if to_type else 'location'
+        
+        instructions = f"Go {direction} for {distance:.1f} meters"
+        
+        # Add context-specific instructions
+        if from_type_name == 'intersection':
+            instructions += f" from the {from_type_name}"
+        elif from_type_name == 'landmark':
+            instructions += f" past the {from_type_name}"
+        
+        if to_type_name == 'landmark':
+            instructions += f" toward the {to_type_name}"
+        elif to_type_name == 'exit':
+            instructions += f" to the {to_type_name}"
+        
+        return instructions
+    
+    def _generate_accessibility_notes(self, edge_data: Dict) -> str:
+        """Generate accessibility notes for a route segment"""
+        penalty = edge_data.get('accessibility_penalty', 0.0)
+        
+        if penalty > 3.0:
+            return "Note: This route may have accessibility challenges"
+        elif penalty > 1.0:
+            return "Note: Minor accessibility considerations"
+        else:
+            return "Route is fully accessible"
+    
+    def _calculate_route_time(self, segments: List[RouteSegment]) -> float:
+        """Calculate estimated travel time for the route"""
+        total_distance = sum(seg.distance for seg in segments)
+        base_time = total_distance / self.walking_speed
+        
+        # Add penalties for turns and complexity
+        turn_penalties = (len(segments) - 1) * self.turn_penalty
+        
+        return base_time + turn_penalties
+    
+    def _generate_checkpoints(self, path: List[str]) -> List[str]:
+        """Generate checkpoint nodes for route verification"""
+        checkpoints = []
+        
+        # Add checkpoints at regular intervals
+        for i in range(0, len(path), max(1, len(path) // 3)):
+            checkpoints.append(path[i])
+        
+        # Ensure destination is always a checkpoint
+        if path[-1] not in checkpoints:
+            checkpoints.append(path[-1])
+        
+        return checkpoints
+    
+    def get_route_summary(self, route: NavigationRoute) -> str:
+        """Generate human-readable route summary"""
+        if not route:
+            return "No route available"
+        
+        summary = f"Route to {route.destination}\n"
+        summary += f"Total distance: {route.total_distance:.1f} meters\n"
+        summary += f"Estimated time: {route.estimated_time:.0f} seconds\n"
+        summary += f"Checkpoints: {', '.join(route.checkpoints)}\n\n"
+        
+        summary += "Turn-by-turn instructions:\n"
+        for i, segment in enumerate(route.segments, 1):
+            summary += f"{i}. {segment.instructions}\n"
+            if segment.accessibility_notes != "Route is fully accessible":
+                summary += f"   {segment.accessibility_notes}\n"
+        
+        return summary
 
 def main():
     """Demo the FICT navigation system."""

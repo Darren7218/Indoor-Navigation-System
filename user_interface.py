@@ -20,8 +20,7 @@ import cv2
 
 from qr_detection import QRCodeDetector
 from qr_reader import QRCodeReader, LocationData
-from route_guidance import RouteGuidance, NavigationRoute
-from fic_navigation_integration import FICTNavigationSystem
+from fic_navigation_integration import FICTNavigationSystem, NavigationRoute
 from config import UI_SETTINGS, AUDIO_SETTINGS, THEMES
 
 class AudioFeedback:
@@ -145,7 +144,6 @@ class NavigationInterface(QMainWindow):
         super().__init__()
         self.audio_feedback = AudioFeedback()
         self.qr_reader = QRCodeReader()
-        self.route_guidance = RouteGuidance()
         self.fict_nav = FICTNavigationSystem()
         
         self.current_location = None
@@ -319,8 +317,14 @@ class NavigationInterface(QMainWindow):
         self.stop_camera_btn.clicked.connect(self._stop_camera)
         self.stop_camera_btn.setEnabled(False)
         
+        self.tips_btn = QPushButton("QR Tips")
+        self.tips_btn.setFont(self._get_medium_font())
+        self.tips_btn.clicked.connect(self._show_qr_scanning_tips)
+        self.tips_btn.setToolTip("Show tips for better QR code scanning")
+        
         camera_controls.addWidget(self.start_camera_btn)
         camera_controls.addWidget(self.stop_camera_btn)
+        camera_controls.addWidget(self.tips_btn)
         camera_controls.addStretch()
         
         # Camera feed display (placeholder for actual video widget)
@@ -333,6 +337,7 @@ class NavigationInterface(QMainWindow):
         self.qr_status_label = QLabel("No QR code detected")
         self.qr_status_label.setFont(self._get_medium_font())
         self.qr_status_label.setStyleSheet("color: orange;")
+        self.qr_status_label.setToolTip("Shows QR code detection status and tips for better scanning")
         
         camera_layout.addLayout(camera_controls)
         camera_layout.addWidget(self.camera_display)
@@ -471,6 +476,10 @@ class NavigationInterface(QMainWindow):
     def _start_camera(self):
         """Start the camera and QR detection"""
         try:
+            # Start the QR reader camera as well
+            if not self.qr_reader.start_camera():
+                self._log_status("Warning: QR reader camera could not be started")
+            
             self.camera_thread = CameraThread()
             self.camera_thread.frame_ready.connect(self._update_camera_display)
             self.camera_thread.qr_detected.connect(self._handle_qr_detection)
@@ -496,6 +505,9 @@ class NavigationInterface(QMainWindow):
             self.camera_thread.stop()
             self.camera_thread.wait()
             self.camera_thread = None
+        
+        # Stop the QR reader camera as well
+        self.qr_reader.stop_camera()
         
         self.start_camera_btn.setEnabled(True)
         self.stop_camera_btn.setEnabled(False)
@@ -534,26 +546,45 @@ class NavigationInterface(QMainWindow):
         # Process the first detected QR code
         color, roi, bbox = detected_qrs[0]
         
-        # Try to decode the QR code
-        location_data = self.qr_reader.decode_qr_code(roi, color)
-        
-        if location_data:
-            self.current_location = location_data
-            # Update FICT current location if possible
-            self.fict_nav.set_current_location_from_locationdata(location_data)
-            self._update_location_display(location_data)
-            self._log_status(f"QR code decoded: {location_data.node_id}")
+        # Try to decode the QR code using the detected region
+        try:
+            # Use the QR detector from the camera thread's detector
+            if hasattr(self.camera_thread, 'detector') and hasattr(self.camera_thread.detector, 'qr_detector'):
+                data, bbox, _ = self.camera_thread.detector.qr_detector.detectAndDecode(roi)
+            else:
+                # Fallback to creating a new detector
+                qr_detector = cv2.QRCodeDetector()
+                data, bbox, _ = qr_detector.detectAndDecode(roi)
             
+            if data:
+                # Create LocationData from the decoded data
+                location_data = LocationData(data)
+                
+                if location_data.is_valid():
+                    self.current_location = location_data
+                    # Update FICT current location if possible
+                    self.fict_nav.set_current_location_from_locationdata(location_data)
+                    self._update_location_display(location_data)
+                    self._log_status(f"QR code decoded: {location_data.location_id}")
+                    
+                    if self.audio_enabled:
+                        self.audio_feedback.speak(f"Location identified: {location_data.location_id}")
+                    
+                    # Enable route calculation
+                    self.calculate_route_btn.setEnabled(True)
+                else:
+                    self._log_status("QR code detected but data is invalid")
+                    if self.audio_enabled:
+                        self.audio_feedback.speak("QR code detected but data is invalid")
+            else:
+                self._log_status("QR code detected but could not be decoded")
+                if self.audio_enabled:
+                    self.audio_feedback.speak("QR code detected but could not be read")
+                    
+        except Exception as e:
+            self._log_status(f"Error decoding QR code: {e}")
             if self.audio_enabled:
-                self.audio_feedback.speak(f"Location identified: {location_data.node_id}")
-            
-            # Enable route calculation
-            self.calculate_route_btn.setEnabled(True)
-            
-        else:
-            self._log_status("QR code detected but could not be decoded")
-            if self.audio_enabled:
-                self.audio_feedback.speak("QR code detected but could not be read")
+                self.audio_feedback.speak("Error decoding QR code")
     
     def _handle_camera_error(self, error_msg):
         """Handle camera errors"""
@@ -563,9 +594,9 @@ class NavigationInterface(QMainWindow):
     
     def _update_location_display(self, location_data: LocationData):
         """Update the location display"""
-        location_text = f"{location_data.node_id} (Floor {location_data.floor_level})"
+        location_text = f"{location_data.location_id} (Floor {location_data.floor_level or 'Unknown'})"
         self.location_label.setText(location_text)
-        self.qr_status_label.setText(f"QR detected: {location_data.node_id}")
+        self.qr_status_label.setText(f"QR detected: {location_data.location_id}")
         self.qr_status_label.setStyleSheet("color: green;")
     
     def _calculate_route(self):
@@ -582,9 +613,9 @@ class NavigationInterface(QMainWindow):
         try:
             # Calculate route via FICT integration (uses QR payload + FICT catalog)
             route_info = self.fict_nav.get_navigation_route(destination)
-            route = route_info['route'] if route_info else None
             
-            if route:
+            if route_info and 'route' in route_info:
+                route = route_info['route']
                 self.current_route = route
                 self._display_route(route)
                 self._log_status(f"Route calculated to {destination}")
@@ -602,7 +633,7 @@ class NavigationInterface(QMainWindow):
     
     def _display_route(self, route: NavigationRoute):
         """Display the calculated route"""
-        route_summary = self.route_guidance.get_route_summary(route)
+        route_summary = self.fict_nav.get_route_summary(route)
         self.route_display.setText(route_summary)
         
         # Show progress bar
@@ -653,6 +684,21 @@ class NavigationInterface(QMainWindow):
         lines = self.status_log.toPlainText().split('\n')
         if len(lines) > 100:
             self.status_log.setPlainText('\n'.join(lines[-100:]))
+    
+    def _show_qr_scanning_tips(self):
+        """Show helpful tips for QR code scanning"""
+        tips = [
+            "💡 QR Scanning Tips:",
+            "• Ensure good lighting - avoid shadows and glare",
+            "• Hold camera steady and parallel to QR code",
+            "• Keep QR code centered in the colored region",
+            "• Maintain distance of 20-50cm from QR code",
+            "• Make sure QR code is not wrinkled or damaged",
+            "• Try different angles if detection fails"
+        ]
+        
+        tip_text = "\n".join(tips)
+        QMessageBox.information(self, "QR Scanning Tips", tip_text)
     
     def keyPressEvent(self, event):
         """Handle keyboard shortcuts"""

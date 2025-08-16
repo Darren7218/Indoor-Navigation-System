@@ -13,7 +13,6 @@ from typing import Optional
 from config import create_directories, save_config, UI_SETTINGS, THEMES
 from qr_detection import QRCodeDetector
 from qr_reader import QRCodeReader, LocationData
-from route_guidance import RouteGuidance
 from fic_navigation_integration import FICTNavigationSystem
 from user_interface import NavigationInterface
 
@@ -33,7 +32,6 @@ class IndoorNavigationSystem:
         self.logger = self._setup_logging()
         self.qr_detector = None
         self.qr_reader = None
-        self.route_guidance = None
         self.gui = None
         self.app = None
         
@@ -73,10 +71,7 @@ class IndoorNavigationSystem:
             self.logger.info("Initializing QR code reader...")
             self.qr_reader = QRCodeReader()
             
-            self.logger.info("Initializing route guidance...")
-            self.route_guidance = RouteGuidance()
-            
-            # Initialize FICT integration (used for FICT-only flows)
+            # Initialize FICT navigation integration (includes route guidance)
             self.logger.info("Initializing FICT navigation integration...")
             self.fict_nav = FICTNavigationSystem()
 
@@ -289,21 +284,17 @@ class IndoorNavigationSystem:
         
         # Create a test location
         test_location = LocationData(
-            node_id="A1",
-            coordinates=(0, 0),
-            floor_level=1,
-            exits={"north": "A2", "east": "B1"},
-            timestamp=time.time(),
+            qr_data='{"location_id": "MAIN_ENTRANCE", "floor_level": 0, "coordinates": [0, 0]}',
             confidence=0.9
         )
         
-        # Calculate a test route
+        # Calculate a test route using FICT navigation
         try:
-            route = self.route_guidance.calculate_route(test_location, "C3")
+            route = self.fict_nav.calculate_route(test_location, "N101")
             
             if route:
                 self.logger.info("Route calculation test successful")
-                route_summary = self.route_guidance.get_route_summary(route)
+                route_summary = self.fict_nav.get_route_summary(route)
                 print("\n" + "="*50)
                 print("ROUTE CALCULATION TEST")
                 print("="*50)

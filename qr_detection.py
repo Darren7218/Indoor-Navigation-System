@@ -25,6 +25,9 @@ class QRCodeDetector:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
+        # Initialize QR detector once for better performance
+        self.qr_detector = cv2.QRCodeDetector()
+        
         # Initialize camera
         self._init_camera()
     
@@ -99,9 +102,37 @@ class QRCodeDetector:
     def _detect_qr_in_region(self, region: np.ndarray) -> bool:
         """Check if a region contains a QR code using OpenCV's QR detector"""
         try:
-            qr_detector = cv2.QRCodeDetector()
-            data, bbox, _ = qr_detector.detectAndDecode(region)
-            return data != "" and bbox is not None
+            # Try original region first
+            data, bbox, _ = self.qr_detector.detectAndDecode(region)
+            if data != "" and bbox is not None:
+                return True
+            
+            # If original fails, try with preprocessing
+            # Convert to grayscale
+            gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
+            data, bbox, _ = self.qr_detector.detectAndDecode(gray)
+            if data != "" and bbox is not None:
+                return True
+            
+            # Try with resized region (2x larger)
+            height, width = region.shape[:2]
+            resized = cv2.resize(region, (width * 2, height * 2))
+            data, bbox, _ = self.qr_detector.detectAndDecode(resized)
+            if data != "" and bbox is not None:
+                return True
+            
+            # Try with contrast enhancement
+            lab = cv2.cvtColor(region, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+            cl = clahe.apply(l)
+            enhanced = cv2.merge((cl,a,b))
+            enhanced = cv2.cvtColor(enhanced, cv2.COLOR_LAB2BGR)
+            data, bbox, _ = self.qr_detector.detectAndDecode(enhanced)
+            if data != "" and bbox is not None:
+                return True
+            
+            return False
         except Exception as e:
             self.logger.debug(f"QR detection error: {e}")
             return False
