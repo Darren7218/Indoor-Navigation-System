@@ -15,6 +15,10 @@ from qr_detection import QRCodeDetector
 from qr_reader import QRCodeReader, LocationData
 from fic_navigation_integration import FICTNavigationSystem
 from user_interface import NavigationInterface
+try:
+    import pyttsx3
+except ImportError:
+    pyttsx3 = None  # type: ignore
 
 # Import PyQt5 for GUI
 try:
@@ -24,6 +28,65 @@ except ImportError:
     print("PyQt5 not available. Please install PyQt5 to run the GUI.")
     print("Install with: pip install PyQt5")
     sys.exit(1)
+
+class SoftVoiceSpeaker:
+    """Simple soft female voice speaker using pyttsx3 (Windows SAPI5)."""
+    def __init__(self, rate: int = 160, volume: float = 0.9):
+        self.engine = None
+        self.available = False
+        self.rate = rate
+        self.volume = volume
+        self._init_engine()
+
+    def _init_engine(self) -> None:
+        try:
+            if pyttsx3 is None:
+                return
+            self.engine = pyttsx3.init()
+            try:
+                voices = self.engine.getProperty('voices')  # type: ignore
+                selected = None
+                for v in voices:
+                    name = getattr(v, 'name', '')
+                    lname = name.lower() if isinstance(name, str) else ''
+                    if 'female' in lname or 'zira' in lname or 'aria' in lname or 'jenny' in lname:
+                        selected = v
+                        break
+                if selected is None and voices:
+                    selected = voices[0]
+                if selected is not None:
+                    self.engine.setProperty('voice', selected.id)  # type: ignore
+            except Exception:
+                pass
+            try:
+                self.engine.setProperty('rate', int(self.rate))  # type: ignore
+                self.engine.setProperty('volume', float(self.volume))  # type: ignore
+            except Exception:
+                pass
+            self.available = True
+        except Exception:
+            self.available = False
+
+    def speak(self, text: str, priority: bool = False) -> None:
+        if not text or not self.available or self.engine is None:
+            return
+        try:
+            if priority:
+                try:
+                    self.engine.stop()  # type: ignore
+                except Exception:
+                    pass
+            self.engine.say(text)  # type: ignore
+            self.engine.runAndWait()  # type: ignore
+        except Exception:
+            pass
+
+    def shutdown(self) -> None:
+        try:
+            if self.engine is not None:
+                self.engine.stop()  # type: ignore
+        except Exception:
+            pass
 
 class IndoorNavigationSystem:
     """Main system coordinator for the Indoor Navigation System"""
@@ -201,8 +264,7 @@ class IndoorNavigationSystem:
             # Test route calculation
             self._test_route_calculation()
             
-            # Test audio feedback
-            self._test_audio_feedback()
+            # Audio feedback is now handled automatically in GUI
             
         except KeyboardInterrupt:
             self.logger.info("Command line mode interrupted by user")
@@ -263,6 +325,14 @@ class IndoorNavigationSystem:
         print("Instructions:")
         for step in route_info['instructions']:
             print(f"  - {step}")
+
+        # Speak the route using soft female voice if available
+        speaker = SoftVoiceSpeaker()
+        if speaker.available:
+            speaker.speak(f"Route to {route_info['destination']['location_id']} ready.", priority=True)
+            for step in route_info['instructions']:
+                speaker.speak(step)
+            speaker.shutdown()
     
     def _test_qr_detection(self):
         """Test QR code detection functionality"""
@@ -305,13 +375,7 @@ class IndoorNavigationSystem:
         except Exception as e:
             self.logger.error(f"Route calculation test error: {e}")
     
-    def _test_audio_feedback(self):
-        """Test audio feedback functionality"""
-        self.logger.info("Testing audio feedback...")
-        
-        # This would test the TTS engine
-        # For now, we'll just log the test
-        self.logger.info("Audio feedback test completed")
+    # Audio feedback is now handled automatically in GUI
     
     def shutdown(self):
         """Shutdown the system gracefully"""
