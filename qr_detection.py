@@ -8,7 +8,15 @@ import numpy as np
 import time
 from typing import Tuple, Optional, List
 import logging
-from config import COLOR_THRESHOLDS, QR_DETECTION
+from config import COLOR_THRESHOLDS, QR_DETECTION, YOLO_SETTINGS, QRDET_SETTINGS
+try:
+    from ultralytics import YOLO  # type: ignore
+except Exception:
+    YOLO = None  # type: ignore
+try:
+    from qrdet import QRDetector  # type: ignore
+except Exception:
+    QRDetector = None  # type: ignore
 
 class QRCodeDetector:
     """Real-time QR code detection using color segmentation and size thresholds"""
@@ -27,6 +35,31 @@ class QRCodeDetector:
         
         # Initialize QR detector once for better performance
         self.qr_detector = cv2.QRCodeDetector()
+        
+        # Optional YOLO model for region proposals
+        self.yolo_model = None
+        if YOLO_SETTINGS.get('enabled', False) and YOLO is not None:
+            weights_path = YOLO_SETTINGS.get('weights_path', 'models/qr_yolo.pt')
+            try:
+                self.yolo_model = YOLO(weights_path)
+                self.logger.info(f"YOLO model loaded from {weights_path}")
+            except Exception as e:
+                self.logger.warning(f"Failed to load YOLO model: {e}")
+                self.yolo_model = None
+
+        # Optional QRDet model for specialized QR detection
+        self.qrdet_model = None
+        if QRDET_SETTINGS.get('enabled', False) and QRDetector is not None:
+            try:
+                self.qrdet_model = QRDetector(
+                    model_size=QRDET_SETTINGS.get('model_size', 's'),
+                    conf_th=float(QRDET_SETTINGS.get('conf_th', 0.5)),
+                    nms_iou=float(QRDET_SETTINGS.get('nms_iou', 0.3))
+                )
+                self.logger.info("QRDet model initialized")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize QRDet: {e}")
+                self.qrdet_model = None
         
         # Initialize camera
         self._init_camera()
@@ -77,27 +110,89 @@ class QRCodeDetector:
         return mask
     
     def _find_color_regions(self, frame: np.ndarray) -> List[Tuple[str, np.ndarray, Tuple[int, int, int, int]]]:
-        """Find regions of specified colors in the frame"""
-        color_regions = []
-        
+        """Find regions via HSV color masks. Returns list of (color, roi, bbox)."""
+        proposals: List[Tuple[str, np.ndarray, Tuple[int, int, int, int]]] = []
         for color in ['red', 'green', 'blue']:
             mask = self._create_color_mask(frame, color)
             contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
             for contour in contours:
                 area = cv2.contourArea(contour)
-                if area > 1000:  # Filter out small noise
+                if area > 1000:
                     x, y, w, h = cv2.boundingRect(contour)
-                    
-                    # Check if region is within size threshold
                     if (QR_DETECTION['min_size'] <= w <= QR_DETECTION['max_size'] and 
                         QR_DETECTION['min_size'] <= h <= QR_DETECTION['max_size']):
-                        
-                        # Extract region of interest
                         roi = frame[y:y+h, x:x+w]
-                        color_regions.append((color, roi, (x, y, w, h)))
-        
-        return color_regions
+                        proposals.append((color, roi, (x, y, w, h)))
+        return proposals
+
+    def _find_yolo_regions(self, frame: np.ndarray) -> List[Tuple[str, np.ndarray, Tuple[int, int, int, int]]]:
+        """Use YOLO to propose QR bounding boxes. Returns list of (label, roi, bbox)."""
+        results_list: List[Tuple[str, np.ndarray, Tuple[int, int, int, int]]] = []
+        if self.yolo_model is None:
+            return results_list
+        try:
+            results = self.yolo_model.predict(
+                source=frame,
+                imgsz=YOLO_SETTINGS.get('img_size', 640),
+                conf=YOLO_SETTINGS.get('conf_threshold', 0.25),
+                iou=YOLO_SETTINGS.get('iou_threshold', 0.45),
+                max_det=YOLO_SETTINGS.get('max_det', 50),
+                verbose=False
+            )
+            # Expect one result for single image
+            if not results:
+                return results_list
+            res = results[0]
+            if not hasattr(res, 'boxes'):
+                return results_list
+            h, w = frame.shape[:2]
+            for b in res.boxes:
+                try:
+                    xyxy = b.xyxy[0].tolist()  # [x1, y1, x2, y2]
+                    x1, y1, x2, y2 = [int(max(0, v)) for v in xyxy]
+                    x1, y1 = min(x1, w-1), min(y1, h-1)
+                    x2, y2 = min(max(x2, x1+1), w), min(max(y2, y1+1), h)
+                    bw, bh = x2 - x1, y2 - y1
+                    if bw < QR_DETECTION['min_size'] or bh < QR_DETECTION['min_size']:
+                        continue
+                    roi = frame[y1:y2, x1:x2]
+                    # Use generic label 'yolo'
+                    results_list.append(('yolo', roi, (x1, y1, bw, bh)))
+                except Exception:
+                    continue
+        except Exception as e:
+            self.logger.warning(f"YOLO inference failed: {e}")
+        return results_list
+
+    def _find_qrdet_regions(self, frame: np.ndarray) -> List:
+        """Use QRDet to propose QR bounding boxes.
+        Returns tuples: ('qrdet', roi, bbox[, quad_xy])
+        """
+        results_list: List = []
+        if self.qrdet_model is None:
+            return results_list
+        try:
+            detections = self.qrdet_model.detect(image=frame, is_bgr=True)
+            h, w = frame.shape[:2]
+            for det in detections:
+                x1, y1, x2, y2 = det.get('bbox_xyxy', [0, 0, 0, 0])
+                x1, y1, x2, y2 = int(max(0, x1)), int(max(0, y1)), int(x2), int(y2)
+                x1, y1 = min(x1, w-1), min(y1, h-1)
+                x2, y2 = min(max(x2, x1+1), w), min(max(y2, y1+1), h)
+                bw, bh = x2 - x1, y2 - y1
+                # Allow slightly smaller proposals to help distant QRs
+                min_size = max(50, QR_DETECTION['min_size'])
+                if bw < min_size or bh < min_size:
+                    continue
+                roi = frame[y1:y2, x1:x2]
+                quad = det.get('quad_xy', None)
+                if quad is not None:
+                    results_list.append(('qrdet', roi, (x1, y1, bw, bh), np.array(quad)))
+                else:
+                    results_list.append(('qrdet', roi, (x1, y1, bw, bh)))
+        except Exception as e:
+            self.logger.warning(f"QRDet inference failed: {e}")
+        return results_list
     
     def _detect_qr_in_region(self, region: np.ndarray) -> bool:
         """Check if a region contains a QR code using OpenCV's QR detector"""
@@ -136,6 +231,27 @@ class QRCodeDetector:
         except Exception as e:
             self.logger.debug(f"QR detection error: {e}")
             return False
+
+    def _warp_from_quad(self, frame: np.ndarray, quad_xy: np.ndarray, side: int = 320) -> Optional[np.ndarray]:
+        """Warp a quadrilateral region to a square patch for easier decoding."""
+        try:
+            if quad_xy is None or len(quad_xy) != 4:
+                return None
+            h, w = frame.shape[:2]
+            src = quad_xy.astype('float32')
+            src[:, 0] = np.clip(src[:, 0], 0, w - 1)
+            src[:, 1] = np.clip(src[:, 1], 0, h - 1)
+            # Order points by angle around centroid to roughly TL, TR, BR, BL
+            cx, cy = float(np.mean(src[:, 0])), float(np.mean(src[:, 1]))
+            angles = np.arctan2(src[:, 1] - cy, src[:, 0] - cx)
+            order = np.argsort(angles)
+            src = src[order]
+            dst = np.array([[0, 0], [side - 1, 0], [side - 1, side - 1], [0, side - 1]], dtype='float32')
+            M = cv2.getPerspectiveTransform(src, dst)
+            warped = cv2.warpPerspective(frame, M, (side, side))
+            return warped
+        except Exception:
+            return None
     
     def start_detection(self):
         """Start real-time QR code detection"""
@@ -154,12 +270,15 @@ class QRCodeDetector:
                 
                 self.current_frame = frame.copy()
                 
-                # Find color regions
+                # Find regions via color and optionally YOLO
                 color_regions = self._find_color_regions(frame)
+                yolo_regions = self._find_yolo_regions(frame) if self.yolo_model is not None else []
+                qrdet_regions = self._find_qrdet_regions(frame) if self.qrdet_model is not None else []
+                all_regions = color_regions + yolo_regions + qrdet_regions
                 
                 # Check each region for QR codes
                 detected_qrs = []
-                for color, roi, bbox in color_regions:
+                for color, roi, bbox in all_regions:
                     if self._detect_qr_in_region(roi):
                         detected_qrs.append((color, roi, bbox))
                         self.logger.info(f"QR code detected in {color} region at {bbox}")
@@ -168,7 +287,7 @@ class QRCodeDetector:
                 self.qr_regions = detected_qrs
                 
                 # Draw detection results on frame
-                self._draw_detection_results(frame, color_regions, detected_qrs)
+                self._draw_detection_results(frame, all_regions, detected_qrs)
                 
                 # Display frame
                 cv2.imshow('QR Code Detection', frame)

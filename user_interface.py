@@ -14,7 +14,6 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QProgressBar, QMessageBox, QFrame, QAction, QMenuBar)
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QFont, QPalette, QColor, QPixmap, QPainter
-import pyttsx3
 import numpy as np
 import cv2
 
@@ -22,52 +21,149 @@ from qr_detection import QRCodeDetector
 from qr_reader import QRCodeReader, LocationData
 from fic_navigation_integration import FICTNavigationSystem, NavigationRoute
 from config import UI_SETTINGS, AUDIO_SETTINGS, THEMES
+from audio_feedback import AudioFeedback
+try:
+    import pyttsx3
+except ImportError:
+    pyttsx3 = None  # type: ignore
 
-class AudioFeedback:
-    """Handles text-to-speech and audio feedback"""
-    
-    def __init__(self):
-        self.engine = None
-        self.is_initialized = False
-        self._init_tts()
-    
-    def _init_tts(self):
-        """Initialize text-to-speech engine"""
-        try:
-            self.engine = pyttsx3.init()
-            self.engine.setProperty('rate', AUDIO_SETTINGS['voice_rate'])
-            self.engine.setProperty('volume', AUDIO_SETTINGS['voice_volume'])
-            self.is_initialized = True
-            logging.info("Text-to-speech engine initialized successfully")
-        except Exception as e:
-            logging.error(f"Failed to initialize TTS engine: {e}")
-            self.is_initialized = False
-    
-    def speak(self, text: str, priority: bool = False):
-        """Speak text using TTS engine"""
-        if not self.is_initialized or not text:
-            return
-        
-        try:
-            if priority:
-                # Stop any current speech for priority messages
-                self.engine.stop()
-            
-            self.engine.say(text)
-            self.engine.runAndWait()
-        except Exception as e:
-            logging.error(f"TTS error: {e}")
-    
+from queue import Queue
+from threading import Thread
+
+class Beeper:
+    """Placeholder beep handler (logs only)."""
     def play_beep(self, frequency: int = None, duration: float = None):
-        """Play a beep sound (placeholder for actual audio implementation)"""
         if frequency is None:
             frequency = AUDIO_SETTINGS['beep_frequency']
         if duration is None:
             duration = AUDIO_SETTINGS['beep_duration']
-        
-        # In a real implementation, you would use PyAudio or similar
-        # For now, we'll just log the beep
-        logging.info(f"Beep: {frequency}Hz for {duration}s")
+        try:
+            import sys as _sys
+            if _sys.platform.startswith('win'):
+                import winsound
+                winsound.Beep(int(frequency), int(duration * 1000))
+            else:
+                logging.info(f"Beep: {frequency}Hz for {duration}s (winsound not available)")
+        except Exception:
+            logging.info(f"Beep: {frequency}Hz for {duration}s (failed to play)")
+
+class AutoVoiceSpeaker:
+    """Threaded voice speaker for route instructions using pyttsx3."""
+    def __init__(self, rate: int = 160, volume: float = 0.9):
+        self.engine = None
+        self.available = False
+        self.rate = rate
+        self.volume = volume
+        self.queue = Queue()
+        self.running = True
+        self.thread = None
+        self._init_engine()
+
+    def _init_engine(self) -> None:
+        try:
+            if pyttsx3 is None:
+                logging.warning("pyttsx3 not available")
+                return
+                
+            self.engine = pyttsx3.init()
+            logging.info("pyttsx3 engine initialized")
+            
+            # Configure voice
+            try:
+                voices = self.engine.getProperty('voices')  # type: ignore
+                logging.info(f"Found {len(voices)} available voices")
+                
+                selected = None
+                for v in voices:
+                    name = getattr(v, 'name', '')
+                    lname = name.lower() if isinstance(name, str) else ''
+                    if 'female' in lname or 'zira' in lname or 'aria' in lname or 'jenny' in lname:
+                        selected = v
+                        break
+                if selected is None and voices:
+                    selected = voices[0]
+                if selected is not None:
+                    self.engine.setProperty('voice', selected.id)  # type: ignore
+                    logging.info(f"Selected voice: {selected.name}")
+            except Exception as e:
+                logging.warning(f"Error setting voice: {e}")
+                
+            # Configure rate and volume
+            try:
+                self.engine.setProperty('rate', int(self.rate))  # type: ignore
+                self.engine.setProperty('volume', float(self.volume))  # type: ignore
+                logging.info(f"Set rate: {self.rate}, volume: {self.volume}")
+            except Exception as e:
+                logging.warning(f"Error setting rate/volume: {e}")
+                
+            self.available = True
+            logging.info("AutoVoiceSpeaker initialized successfully")
+            
+            # Start the speech processing thread
+            self.thread = Thread(target=self._process_queue, daemon=True)
+            self.thread.start()
+            logging.info("Speech processing thread started")
+            
+        except Exception as e:
+            logging.error(f"Failed to initialize AutoVoiceSpeaker: {e}")
+            self.available = False
+
+    def _process_queue(self):
+        """Continuously read queue and speak without blocking GUI"""
+        logging.info("Speech processing thread started")
+        while self.running:
+            try:
+                text, priority = self.queue.get(timeout=1.0)  # 1 second timeout
+                if not text:
+                    continue
+                    
+                logging.info(f"Processing speech: '{text}' (priority: {priority})")
+                
+                if priority and self.engine:
+                    try:
+                        self.engine.stop()  # type: ignore
+                        logging.info("Stopped current speech due to priority")
+                    except Exception as e:
+                        logging.warning(f"Error stopping speech: {e}")
+                        
+                if self.engine:
+                    try:
+                        self.engine.say(text)  # type: ignore
+                        self.engine.runAndWait()  # type: ignore
+                        logging.info(f"Successfully spoke: '{text}'")
+                    except Exception as e:
+                        logging.error(f"Error speaking text: {e}")
+                    
+            except Exception as e:
+                # Timeout or other error, continue
+                if "Empty" not in str(e):  # Don't log timeout exceptions
+                    logging.warning(f"Speech processing error: {e}")
+                continue
+
+    def speak(self, text: str, priority: bool = False) -> None:
+        """Queue a new message to speak without blocking"""
+        if not text:
+            logging.warning("Empty text provided to speak")
+            return
+        if not self.available:
+            logging.warning("AutoVoiceSpeaker not available")
+            return
+        try:
+            self.queue.put((text, priority))
+            logging.info(f"Queued speech: '{text}' (priority: {priority})")
+        except Exception as e:
+            logging.error(f"Error queuing speech: {e}")
+
+    def shutdown(self) -> None:
+        """Stop speaker cleanly"""
+        logging.info("Shutting down AutoVoiceSpeaker")
+        self.running = False
+        try:
+            if self.engine is not None:
+                self.engine.stop()  # type: ignore
+                logging.info("Stopped pyttsx3 engine")
+        except Exception as e:
+            logging.error(f"Error stopping engine: {e}")
 
 class CameraThread(QThread):
     """Thread for handling camera operations"""
@@ -99,13 +195,34 @@ class CameraThread(QThread):
                     ret, frame = self.detector.cap.read()
                     if ret:
                         try:
-                            # Process frame for QR detection
-                            color_regions = self.detector._find_color_regions(frame)
+                            # Process frame for QR detection (color + optional YOLO)
+                            regions = self.detector._find_color_regions(frame)
+                            if hasattr(self.detector, 'yolo_model') and self.detector.yolo_model is not None:
+                                try:
+                                    regions += self.detector._find_yolo_regions(frame)
+                                except Exception:
+                                    pass
+                            if hasattr(self.detector, 'qrdet_model') and self.detector.qrdet_model is not None:
+                                try:
+                                    regions += self.detector._find_qrdet_regions(frame)
+                                except Exception:
+                                    pass
                             detected_qrs = []
                             
-                            for color, roi, bbox in color_regions:
-                                if self.detector._detect_qr_in_region(roi):
-                                    detected_qrs.append((color, roi, bbox))
+                            for entry in regions:
+                                if len(entry) == 3:
+                                    color, roi, bbox = entry
+                                    if self.detector._detect_qr_in_region(roi):
+                                        detected_qrs.append((color, roi, bbox))
+                                elif len(entry) >= 4:
+                                    color, roi, bbox, quad = entry[0], entry[1], entry[2], entry[3]
+                                    # Try polygon warp first if available
+                                    warped = self.detector._warp_from_quad(frame, quad)
+                                    if warped is not None and self.detector._detect_qr_in_region(warped):
+                                        detected_qrs.append((color, roi, bbox))
+                                    else:
+                                        if self.detector._detect_qr_in_region(roi):
+                                            detected_qrs.append((color, roi, bbox))
                             
                             # Emit signals
                             self.frame_ready.emit(frame)
@@ -143,6 +260,9 @@ class NavigationInterface(QMainWindow):
     def __init__(self):
         super().__init__()
         self.audio_feedback = AudioFeedback()
+        self._beeper = Beeper()
+        # Use the same audio feedback instance instead of creating a separate AutoVoiceSpeaker
+        self.auto_speaker = self.audio_feedback
         self.qr_reader = QRCodeReader()
         self.fict_nav = FICTNavigationSystem()
         
@@ -393,37 +513,19 @@ class NavigationInterface(QMainWindow):
         control_group = QGroupBox("System Controls")
         control_layout = QGridLayout(control_group)
         
-        # Audio controls
-        self.audio_enabled = True
-        self.audio_toggle_btn = QPushButton("Audio: ON")
-        self.audio_toggle_btn.setFont(self._get_medium_font())
-        self.audio_toggle_btn.clicked.connect(self._toggle_audio)
+        # Simple status label
+        self.voice_status_label = QLabel("Voice: Ready")
+        self.voice_status_label.setFont(self._get_medium_font())
+        self.voice_status_label.setStyleSheet("color: green;")
         
-        # Volume control
-        self.volume_slider = QSlider(Qt.Horizontal)
-        self.volume_slider.setRange(0, 100)
-        self.volume_slider.setValue(90)
-        self.volume_slider.valueChanged.connect(self._adjust_volume)
+        # Add status to grid
+        control_layout.addWidget(self.voice_status_label, 0, 0, 1, 2)
         
-        # Voice rate control
-        self.rate_slider = QSlider(Qt.Horizontal)
-        self.rate_slider.setRange(50, 300)
-        self.rate_slider.setValue(150)
-        self.rate_slider.valueChanged.connect(self._adjust_speech_rate)
-        
-        # Test audio button
-        self.test_audio_btn = QPushButton("Test Audio")
-        self.test_audio_btn.setFont(self._get_medium_font())
-        self.test_audio_btn.clicked.connect(self._test_audio)
-        
-        # Add controls to grid
-        control_layout.addWidget(QLabel("Audio:"), 0, 0)
-        control_layout.addWidget(self.audio_toggle_btn, 0, 1)
-        control_layout.addWidget(QLabel("Volume:"), 1, 0)
-        control_layout.addWidget(self.volume_slider, 1, 1)
-        control_layout.addWidget(QLabel("Speech Rate:"), 2, 0)
-        control_layout.addWidget(self.rate_slider, 2, 1)
-        control_layout.addWidget(self.test_audio_btn, 3, 0, 1, 2)
+        # Add a test voice button
+        self.test_voice_btn = QPushButton("Test Voice")
+        self.test_voice_btn.setFont(self._get_medium_font())
+        self.test_voice_btn.clicked.connect(self._test_voice)
+        control_layout.addWidget(self.test_voice_btn, 1, 0, 1, 2)
         
         layout.addWidget(control_group)
     
@@ -467,11 +569,9 @@ class NavigationInterface(QMainWindow):
     
     def _setup_audio_feedback(self):
         """Setup initial audio feedback"""
-        if self.audio_feedback.is_initialized:
-            self.audio_feedback.speak("Navigation system initialized and ready")
-            self._log_status("System initialized with audio feedback")
-        else:
-            self._log_status("Warning: Audio feedback not available")
+        # Always queue; the worker will speak when ready
+        self.audio_feedback.speak("Navigation system initialized and ready")
+        self._log_status("System initialized with audio feedback")
     
     def _start_camera(self):
         """Start the camera and QR detection"""
@@ -492,8 +592,7 @@ class NavigationInterface(QMainWindow):
             self.status_indicator.setStyleSheet("color: green; font-size: 24px;")
             
             self._log_status("Camera started")
-            if self.audio_enabled:
-                self.audio_feedback.speak("Camera started, scanning for QR codes")
+            self.audio_feedback.speak("Camera started, scanning for QR codes")
             
         except Exception as e:
             self._log_status(f"Error starting camera: {e}")
@@ -517,8 +616,7 @@ class NavigationInterface(QMainWindow):
         self.qr_status_label.setText("No QR code detected")
         
         self._log_status("Camera stopped")
-        if self.audio_enabled:
-            self.audio_feedback.speak("Camera stopped")
+        self.audio_feedback.speak("Camera stopped")
     
     def _update_camera_display(self, frame):
         """Update the camera display with new frame"""
@@ -567,24 +665,21 @@ class NavigationInterface(QMainWindow):
                     self._update_location_display(location_data)
                     self._log_status(f"QR code decoded: {location_data.location_id}")
                     
-                    if self.audio_enabled:
-                        self.audio_feedback.speak(f"Location identified: {location_data.location_id}")
+                    self.audio_feedback.speak(f"Location identified: {location_data.location_id}")
                     
                     # Enable route calculation
                     self.calculate_route_btn.setEnabled(True)
                 else:
                     self._log_status("QR code detected but data is invalid")
-                    if self.audio_enabled:
-                        self.audio_feedback.speak("QR code detected but data is invalid")
+                    self.audio_feedback.speak("QR code detected but data is invalid")
             else:
                 self._log_status("QR code detected but could not be decoded")
-                if self.audio_enabled:
-                    self.audio_feedback.speak("QR code detected but could not be read")
+                self.audio_feedback.speak("QR code detected but could not be read")
                     
         except Exception as e:
             self._log_status(f"Error decoding QR code: {e}")
-            if self.audio_enabled:
-                self.audio_feedback.speak("Error decoding QR code")
+            if self.auto_speaker.available:
+                self.auto_speaker.speak("Error decoding QR code")
     
     def _handle_camera_error(self, error_msg):
         """Handle camera errors"""
@@ -620,8 +715,8 @@ class NavigationInterface(QMainWindow):
                 self._display_route(route)
                 self._log_status(f"Route calculated to {destination}")
                 
-                if self.audio_enabled:
-                    self.audio_feedback.speak(f"Route calculated to {destination}. {len(route.segments)} steps required.")
+                # Automatically speak route instructions
+                self._speak_route_instructions(route_info)
                 
             else:
                 QMessageBox.information(self, "No Route", f"No route found to {destination}")
@@ -641,38 +736,97 @@ class NavigationInterface(QMainWindow):
         self.navigation_progress.setMaximum(len(route.segments))
         self.navigation_progress.setValue(0)
     
-    def _toggle_audio(self):
-        """Toggle audio feedback on/off"""
-        self.audio_enabled = not self.audio_enabled
+    def _speak_route_instructions(self, route_info):
+        """Automatically speak route instructions after calculation."""
+        self._log_status("Starting route voice instructions...")
         
-        if self.audio_enabled:
-            self.audio_toggle_btn.setText("Audio: ON")
-            self.audio_feedback.speak("Audio feedback enabled")
-        else:
-            self.audio_toggle_btn.setText("Audio: OFF")
-            self.audio_feedback.speak("Audio feedback disabled")
+        # Audible cue to confirm audio path
+        try:
+            self._beeper.play_beep()
+        except Exception:
+            pass
         
-        self._log_status(f"Audio feedback {'enabled' if self.audio_enabled else 'disabled'}")
-    
-    def _adjust_volume(self, value):
-        """Adjust audio volume"""
-        if self.audio_feedback.engine:
-            self.audio_feedback.engine.setProperty('volume', value / 100.0)
-        self._log_status(f"Volume adjusted to {value}%")
-    
-    def _adjust_speech_rate(self, value):
-        """Adjust speech rate"""
-        if self.audio_feedback.engine:
-            self.audio_feedback.engine.setProperty('rate', value)
-        self._log_status(f"Speech rate adjusted to {value}")
-    
-    def _test_audio(self):
-        """Test audio feedback"""
-        if self.audio_enabled:
-            self.audio_feedback.speak("Audio feedback test successful")
-            self._log_status("Audio test completed")
-        else:
-            self._log_status("Audio test skipped - audio disabled")
+        try:
+            # Debug: Log the route_info structure
+            self._log_status(f"Route info keys: {list(route_info.keys())}")
+            
+            # Get destination info - the destination key contains the location data
+            destination_data = route_info.get('destination', {})
+            self._log_status(f"Destination data keys: {list(destination_data.keys())}")
+            
+            destination_id = destination_data.get('description', 'Unknown destination')
+            
+            self._log_status(f"Speaking route to: {destination_id}")
+            
+            # Use direct pyttsx3 since we know it works
+            import pyttsx3
+            engine = pyttsx3.init(driverName='sapi5')
+            engine.setProperty('volume', 1.0)
+            engine.setProperty('rate', 150)
+            
+            # Speak route summary
+            route_summary = f"Route to {destination_id} calculated. Starting navigation instructions."
+            engine.say(route_summary)
+            engine.runAndWait()
+            self._log_status(f"Spoke route summary: {route_summary}")
+            
+            # Speak each instruction in sequence
+            instructions = route_info.get('instructions', [])
+            if instructions:
+                self._log_status(f"Found {len(instructions)} instructions to speak")
+                for i, instruction in enumerate(instructions, 1):
+                    instruction_text = f"Step {i}: {instruction}"
+                    engine.say(instruction_text)
+                    engine.runAndWait()
+                    time.sleep(0.5)  # Small pause between instructions
+                    self._log_status(f"Spoke instruction {i}: {instruction_text}")
+            else:
+                self._log_status("No instructions found, speaking fallback message")
+                engine.say("No detailed instructions available for this route.")
+                engine.runAndWait()
+            
+            # Speak completion message
+            completion_msg = "Navigation instructions complete. Follow the steps to reach your destination."
+            engine.say(completion_msg)
+            engine.runAndWait()
+            self._log_status(f"Spoke completion message: {completion_msg}")
+            
+            self._log_status("Route voice instructions completed")
+            
+        except Exception as e:
+            self._log_status(f"Error speaking route: {e}")
+            import traceback
+            self._log_status(f"Traceback: {traceback.format_exc()}")
+
+    def _test_voice(self):
+        """Test the voice system"""
+        self._log_status("Testing voice system...")
+        
+        # Test beep first
+        try:
+            self._beeper.play_beep()
+        except Exception:
+            pass
+        
+        # Use direct pyttsx3 since we know it works
+        try:
+            import pyttsx3
+            engine = pyttsx3.init(driverName='sapi5')
+            engine.setProperty('volume', 1.0)
+            engine.setProperty('rate', 150)
+            
+            # Test messages
+            engine.say("Voice test. The navigation system is ready to guide you.")
+            engine.runAndWait()
+            time.sleep(0.5)
+            
+            engine.say("Voice test complete.")
+            engine.runAndWait()
+            
+            self._log_status("Voice test completed successfully")
+        except Exception as e:
+            self._log_status(f"Voice test failed: {e}")
+            QMessageBox.warning(self, "Voice Test", f"Voice test failed: {e}")
     
     def _log_status(self, message: str):
         """Log status message to the status log"""
@@ -704,7 +858,7 @@ class NavigationInterface(QMainWindow):
         """Handle keyboard shortcuts"""
         if event.key() == Qt.Key_Space:
             # Spacebar toggles audio
-            self._toggle_audio()
+            pass # No audio toggle in this version
         elif event.key() == Qt.Key_C:
             # C key toggles camera
             if self.start_camera_btn.isEnabled():
@@ -724,8 +878,13 @@ class NavigationInterface(QMainWindow):
         if self.camera_thread:
             self._stop_camera()
         
-        if self.audio_enabled:
-            self.audio_feedback.speak("Navigation system shutting down")
+        self.audio_feedback.speak("Navigation system shutting down")
+        # Ensure audio worker stops
+        try:
+            if hasattr(self, 'audio_feedback') and self.audio_feedback:
+                self.audio_feedback.shutdown()
+        except Exception:
+            pass
         
         event.accept()
 

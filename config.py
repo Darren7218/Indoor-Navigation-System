@@ -37,7 +37,12 @@ AUDIO_SETTINGS = {
     'voice_rate': 150,
     'voice_volume': 0.9,
     'beep_frequency': 1000,
-    'beep_duration': 0.1
+    'beep_duration': 0.1,
+    # Coqui TTS settings
+    'use_tts': True,
+    'tts_model': 'tts_models/en/vctk/vits',
+    'speaker_id': 'p360',
+    'device_preference': 'auto'  # 'auto' | 'cpu' | 'cuda'
 }
 
 # Navigation settings
@@ -45,6 +50,24 @@ NAVIGATION = {
     'recalculation_threshold': 5.0,  # Meters
     'checkpoint_distance': 10.0,    # Meters
     'turn_announcement_distance': 3.0  # Meters
+}
+
+# YOLO-based QR proposal settings
+YOLO_SETTINGS = {
+    'enabled': False,                # Set True to enable YOLO proposals
+    'weights_path': 'models/qr_yolo.pt',  # Path to a QR-specific YOLO model
+    'img_size': 640,
+    'conf_threshold': 0.25,
+    'iou_threshold': 0.45,
+    'max_det': 50
+}
+
+# QRDet (YOLOv8-based specialized QR detector) settings
+QRDET_SETTINGS = {
+    'enabled': True,              # Prefer QRDet for robust QR box proposals
+    'model_size': 'l',            # 'n'|'s'|'m'|'l'
+    'conf_th': 0.5,
+    'nms_iou': 0.3
 }
 
 # UI settings

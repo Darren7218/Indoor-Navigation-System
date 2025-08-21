@@ -9,6 +9,7 @@ A specialized indoor navigation system designed for the FICT Building, featuring
 - **Real-time webcam capture** with continuous frame processing
 - **HSV color segmentation** for robust detection under varying lighting conditions
 - **Automated QR generation** for all 149 FICT Building locations
+- **Optional robust detectors**: YOLOv8 proposals and QRDet-based specialized QR detection
 
 ### Navigation System
 - **149 FICT Building locations** across 2 floors
@@ -32,6 +33,8 @@ A specialized indoor navigation system designed for the FICT Building, featuring
 - **NetworkX**: Graph algorithms and pathfinding
 - **pyttsx3**: Text-to-speech (offline compatible)
 - **qrcode**: QR code generation
+- **ultralytics**: YOLOv8 object detection (optional for QR proposals)
+- **qrdet**: Robust QR detector (YOLOv8-based) for difficult cases (optional)
 
 ### Hardware Requirements
 - **Computer**: Laptop or PC with 720p/1080p webcam
@@ -176,6 +179,29 @@ AUDIO_SETTINGS = {
 }
 ```
 
+### Detection Settings (optional)
+Enable stronger proposals to help the OpenCV decoder in tough conditions.
+
+```python
+# YOLO proposals (requires ultralytics + torch)
+YOLO_SETTINGS = {
+    'enabled': False,
+    'weights_path': 'models/qr_yolo.pt',
+    'img_size': 640,
+    'conf_threshold': 0.25,
+    'iou_threshold': 0.45,
+    'max_det': 50,
+}
+
+# QRDet specialized detector (pip install qrdet)
+QRDET_SETTINGS = {
+    'enabled': True,
+    'model_size': 's',
+    'conf_th': 0.5,
+    'nms_iou': 0.3,
+}
+```
+
 ## 🧪 Testing
 
 ### System Testing
@@ -263,6 +289,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - PyQt developers for accessible UI framework
 - NetworkX team for graph algorithms
 - Accessibility advocates for design guidance
+- QRDet by Eric Cañas for robust YOLOv8-based QR detection. See project: [qrdet](https://github.com/Eric-Canas/qrdet)
 
 ## 📞 Support
 
