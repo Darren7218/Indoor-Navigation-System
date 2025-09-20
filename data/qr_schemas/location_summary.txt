@@ -1,0 +1,160 @@
+FICT Building Location Summary
+========================================
+
+GROUND FLOOR (Blue QR Codes):
+------------------------------
+NG-001: Office at 10,5
+NG-002: Office at 15,5
+NG-003: Office at 20,5
+NG-004: Office at 25,5
+NG-005: Office at 30,5
+NG-006: Office at 35,5
+NG-007: Office at 40,5
+NG-008: Office at 45,5
+NG-009: Office at 50,5
+NG-010: Office at 55,5
+NG-011: Office at 60,5
+NG-012: Office at 65,5
+NG-013: Office at 70,5
+NG-014: Office at 75,5
+NG-015: Office at 10,15
+NG-016: Office at 15,15
+NG-017: Office at 20,15
+NG-018: Office at 25,15
+NG-019: Office at 30,15
+NG-020: Office at 35,15
+NG-021: Office at 40,15
+NG-022: Office at 45,15
+NG-024: Office at 5,25
+NG-025: Office at 5,30
+NG-026: Office at 5,35
+NG-027: Office at 5,40
+NG-028: Office at 5,45
+NG-029: Office at 10,50
+NG-030: Office at 15,50
+NG-031: Office at 10,60
+NG-032: Office at 15,60
+NG-033: Office at 20,60
+NG-034: Office at 25,60
+NG-035: Office at 30,60
+NG-036: Office at 35,60
+NG-037: Office at 40,60
+NG-038: Office at 45,60
+NG-039: Office at 50,60
+NG-040: Office at 55,60
+NG-041: Office at 60,60
+NG-042: Office at 65,60
+NG-043: Office at 70,60
+NG-044: Office at 75,60
+NG-045: Office at 80,60
+NG-046: Office at 85,60
+NG-047: Office at 90,60
+NG-048: Office at 95,60
+NG-049: Office at 100,60
+NG-050: Office at 105,60
+NG-051: Office at 110,60
+NG-052: Office at 115,60
+N007: Lecture Room 7 - Open-Office Style Classroom at 120,10
+N006: Lecture Room 6 at 130,10
+N005: Lecture Room 5 at 140,10
+N004: Lecture Room 4 at 150,10
+N003: Lecture Room 3 at 160,10
+N002: Lecture Room 2 at 170,10
+N001: Lecture Room 1 at 180,10
+N008: Microsoft Software Engineering Laboratory at 120,50
+N009: Silverlake Lab at 130,50
+N010: Cisco Networking Academy Laboratory at 140,50
+N011: IPSR Lab at 150,50
+N012: Laboratory at 160,50
+NGT6: Female Toilet at 50,20
+NGT7: Male Toilet at 55,20
+NGT3: Disable Toilet at 155,35
+NGT5: Female Toilet at 125,45
+NGT4: Male Toilet at 130,45
+NGT1: Female Toilet at 175,45
+NGT2: Male Toilet at 180,45
+STAIRS_G1: Staircase to First Floor at 42,25
+STAIRS_G2: Staircase to First Floor at 155,25
+STAIRS_G3: Staircase to First Floor at 175,25
+MAIN_ENTRANCE: Main Building Entrance at 0,32
+CORRIDOR_MAIN: Main Corridor at 85,32
+CORRIDOR_LECTURE: Lecture Room Corridor at 150,5
+CORRIDOR_LAB: Laboratory Corridor at 150,55
+
+FIRST FLOOR (Red QR Codes):
+------------------------------
+NF-022: Faculty General Office at 10,5
+NF-023: Meeting Room at 10,15
+NF-022B: Office at 15,5
+NF-013: Office at 20,5
+NF-012: Office at 25,5
+NF-011: Office at 30,5
+NF-010: Office at 35,5
+NF-009: Office at 40,5
+NF-008: Office at 45,5
+NF-007: Office at 50,5
+NF-006: Office at 55,5
+NF-005: Office at 60,5
+NF-004: Office at 65,5
+NF-003: Office at 70,5
+NF-002: Office at 75,5
+NF-022C: Office at 15,15
+NF-021D: Office at 20,15
+NF-024: Office at 25,15
+NF-025: Office at 30,15
+NF-026: Office at 35,15
+NF-027: Office at 40,15
+NF-028: Office at 45,15
+NF-029: Office at 50,15
+NF-030: Office at 55,15
+NF-031: Office at 60,15
+NF-032: Office at 65,15
+NF-033: Office at 70,15
+NF-034: Office at 75,15
+NF-021: Office at 20,25
+NF-020: Office at 25,25
+NF-019: Office at 30,25
+NF-018: Office at 35,25
+NF-017: Office at 40,25
+NF-016: Office at 45,25
+NF-015: Office at 50,25
+NF-014: Office at 55,25
+NF-042: Office at 20,35
+NF-041: Office at 25,35
+NF-040: Office at 30,35
+NF-039: Office at 35,35
+NF-038: Office at 40,35
+NF-037: Office at 45,35
+NF-036: Office at 50,35
+NF-035: Office at 55,35
+N107: Lecture Room 7 at 120,10
+N106: Lecture Room 6 at 130,10
+N105: Lecture Room 5 at 140,10
+N104: Lecture Room 4 - IoT and Big Data Laboratory at 150,10
+N108: Huawei Networking Laboratory at 120,50
+N109: Final Year Project Laboratory at 130,50
+N103: Lecture Room 3 at 160,10
+N102: Lecture Room 2 at 170,10
+N101: Lecture Room 1 at 180,10
+N110: Intel AI Lab at 160,50
+N111: IPSR Lab at 170,50
+N112: GDEX Technovate Lab at 180,50
+NFT6: Female Toilet at 50,20
+NFT7: Male Toilet at 55,20
+NFT3: Disable Toilet at 150,35
+NFT5: Female Toilet at 125,45
+NFT4: Male Toilet at 130,45
+NFT1: Female Toilet at 175,45
+NFT2: Male Toilet at 180,45
+NFP2: Pantry at 60,20
+STAIRS_F1: Staircase to Ground Floor at 42,25
+STAIRS_F2: Staircase to Ground Floor at 150,25
+STAIRS_F3: Staircase to Ground Floor at 175,25
+OPEN_SPACE_CENTRAL: Central Open Space at 150,30
+OPEN_SPACE_RIGHT: Right Section Open Space at 170,30
+CORRIDOR_MAIN_F1: Main Corridor at 85,30
+CORRIDOR_LECTURE_F1: Lecture Room Corridor at 150,5
+CORRIDOR_LAB_F1: Laboratory Corridor at 150,55
+
+Total: 149 locations
+Generated: 149 QR codes
