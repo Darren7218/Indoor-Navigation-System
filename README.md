@@ -101,13 +101,13 @@ python main.py --cli
    - Toggle High Contrast mode for accessibility
 
 3. **Camera Setup**
-   - Click "Start Camera" or press 'C'
+   - Click "Start Camera"
    - System begins scanning for color-coded QR codes
 
 4. **QR Code Detection**
    - Point camera at FICT Building QR codes
-   - Blue QR codes = Ground Floor locations
-   - Red QR codes = First Floor locations
+   - Blue frame QR codes = Ground Floor locations
+   - Red frame QR codes = First Floor locations
    - System automatically detects and enters reading mode
 
 5. **Location Identification**
@@ -117,24 +117,13 @@ python main.py --cli
 
 6. **Route Planning**
    - Select destination from dropdown menu
-   - Click "Calculate Route" or press 'R'
+   - Click "Calculate Route"
    - System calculates optimal path using A* algorithm
 
 7. **Navigation**
    - Turn-by-turn instructions are provided
    - Audio cues guide user through route
    - Progress tracking shows completion status
-
-### Keyboard Shortcuts
-- **Spacebar**: Toggle audio feedback
-- **C**: Start/Stop camera
-- **R**: Recalculate route
-- **Escape**: Close application
-
-### Audio Controls
-- **Volume Slider**: Adjust audio volume (0-100%)
-- **Speech Rate**: Control TTS speed (50-300 words/min)
-- **Audio Toggle**: Enable/disable all audio feedback
 
 ## 🗺️ FICT Building Layout
 
@@ -183,15 +172,6 @@ AUDIO_SETTINGS = {
 Enable stronger proposals to help the OpenCV decoder in tough conditions.
 
 ```python
-# YOLO proposals (requires ultralytics + torch)
-YOLO_SETTINGS = {
-    'enabled': False,
-    'weights_path': 'models/qr_yolo.pt',
-    'img_size': 640,
-    'conf_threshold': 0.25,
-    'iou_threshold': 0.45,
-    'max_det': 50,
-}
 
 # QRDet specialized detector (pip install qrdet)
 QRDET_SETTINGS = {
@@ -200,23 +180,6 @@ QRDET_SETTINGS = {
     'conf_th': 0.5,
     'nms_iou': 0.3,
 }
-```
-
-## 🧪 Testing
-
-### System Testing
-```bash
-python test_system.py
-```
-
-### QR Code Generation Testing
-```bash
-python test_qr_generator.py
-```
-
-### Navigation Testing
-```bash
-python debug_test.py
 ```
 
 ## 📁 Project Structure
@@ -238,6 +201,22 @@ IndoorNavProj/
 │   └── important_locations/          # 4 Large QR codes
 ├── logs/                             # System logs
 └── cache/                            # Temporary files
+```
+
+## Project Structure
+```
+IndoorNavProj/
+├── main.py                           # Main system entry point
+├── config.py                         # Configuration and settings
+├── user_interface.py                 # Accessible UI module
+├── fic_navigation_integration.py     # FICT Building navigation logic
+├── qr_detection.py                   # QR code detection module
+├── qr_reader.py                      # QR code reading module
+├── audio_feedback.py                 # Text-to-speech module
+├── requirements.txt                  # Python dependencies
+├── data/                             # Data files, including QR codes
+├── logs/                             # System logs
+└── _pycache_/                        # Temporary files
 ```
 
 ## 🔍 Troubleshooting
@@ -301,3 +280,4 @@ For technical support or questions:
 ---
 
 **Note**: This system is specifically designed for the FICT Building. Always test thoroughly in your specific environment before deploying in production settings.
+
