@@ -14,10 +14,6 @@ COLOR_THRESHOLDS = {
         'lower2': [160, 100, 100],
         'upper2': [180, 255, 255]
     },
-    'green': {
-        'lower': [40, 100, 100],
-        'upper': [80, 255, 255]
-    },
     'blue': {
         'lower': [100, 100, 100],
         'upper': [130, 255, 255]
@@ -52,21 +48,12 @@ NAVIGATION = {
     'turn_announcement_distance': 3.0  # Meters
 }
 
-# YOLO-based QR proposal settings
-YOLO_SETTINGS = {
-    'enabled': False,                # Set True to enable YOLO proposals
-    'weights_path': 'models/qr_yolo.pt',  # Path to a QR-specific YOLO model
-    'img_size': 640,
-    'conf_threshold': 0.25,
-    'iou_threshold': 0.45,
-    'max_det': 50
-}
 
-# QRDet (YOLOv8-based specialized QR detector) settings
+#  QRDET(YOLOv8-based specialized QR detector) settings
 QRDET_SETTINGS = {
     'enabled': True,              # Prefer QRDet for robust QR box proposals
-    'model_size': 'l',            # 'n'|'s'|'m'|'l'
-    'conf_th': 0.5,
+    'model_size': 's',            # 'n'|'s'|'m'|'l'
+    'conf_th': 0.6,
     'nms_iou': 0.3
 }
 
@@ -78,7 +65,7 @@ UI_SETTINGS = {
     'font_size_medium': 18,
     'font_size_small': 14,
     'high_contrast': True,
-    'theme': 'dark'  # 'light' or 'dark'
+    'theme': 'light'  # 'light' or 'dark'
 }
 
 # Theme configurations
@@ -122,26 +109,4 @@ def create_directories():
     for path in PATHS.values():
         os.makedirs(path, exist_ok=True)
 
-def save_config():
-    """Save current configuration to file"""
-    config = {
-        'color_thresholds': COLOR_THRESHOLDS,
-        'qr_detection': QR_DETECTION,
-        'audio_settings': AUDIO_SETTINGS,
-        'navigation': NAVIGATION,
-        'ui_settings': UI_SETTINGS,
-        'paths': PATHS
-    }
-    
-    with open('config.json', 'w') as f:
-        json.dump(config, f, indent=4)
 
-def load_config():
-    """Load configuration from file"""
-    try:
-        with open('config.json', 'r') as f:
-            config = json.load(f)
-            return config
-    except FileNotFoundError:
-        # Use default configuration
-        return None

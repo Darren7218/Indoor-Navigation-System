@@ -12,7 +12,6 @@ import math
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 from qr_detection import QRCodeDetector
-from qr_generator import ColoredQRGenerator
 from qr_reader import QRCodeReader, LocationData as QRReaderLocationData
 
 @dataclass
@@ -61,7 +60,6 @@ class FICTNavigationSystem:
         """
         self.config_file = config_file
         self.qr_detector = QRCodeDetector()
-        self.qr_generator = ColoredQRGenerator(config_file)
         
         # Load FICT Building location data
         self.fic_locations = self._load_fic_locations()
@@ -428,36 +426,10 @@ class FICTNavigationSystem:
             'destination': destination,
             'route': route,
             'floor_change_needed': floor_change_needed,
-            'estimated_time': self._estimate_travel_time(route),
+            'estimated_time': route.estimated_time if route else 0.0,
             'instructions': self._generate_navigation_instructions(route, floor_change_needed)
         }
     
-    def _estimate_travel_time(self, route) -> float:
-        """Estimate travel time based on route complexity."""
-        if not route:
-            return 0.0
-        
-        # Handle NavigationRoute object
-        if hasattr(route, 'segments'):
-            segments = route.segments
-        elif isinstance(route, list):
-            segments = route
-        else:
-            return 0.0
-        
-        # Base time per step (in minutes)
-        base_time_per_step = 0.5
-        
-        # Additional time for floor changes
-        floor_change_penalty = 2.0
-        
-        total_time = len(segments) * base_time_per_step
-        
-        # Add penalty for floor changes
-        if hasattr(route, 'floor_changes') and route.floor_changes:
-            total_time += floor_change_penalty
-        
-        return total_time
     
     def _generate_navigation_instructions(self, route, floor_change: bool) -> List[str]:
         """Generate human-readable navigation instructions."""
@@ -983,52 +955,3 @@ class FICTNavigationSystem:
         
         return summary
 
-def main():
-    """Demo the FICT navigation system."""
-    print("=== FICT Building Navigation System Demo ===")
-    
-    # Initialize the system
-    nav_system = FICTNavigationSystem()
-    
-    # Demo location search
-    print("\n--- Location Search Demo ---")
-    search_results = nav_system.search_locations("lecture")
-    print(f"Found {len(search_results)} lecture rooms:")
-    for location in search_results[:5]:  # Show first 5
-        print(f"  - {location['location_id']}: {location['description']}")
-    
-    # Demo floor map
-    print("\n--- Floor Map Demo ---")
-    ground_floor = nav_system.get_floor_map("0")
-    print(f"Ground Floor: {ground_floor['total_locations']} locations")
-    
-    first_floor = nav_system.get_floor_map("1")
-    print(f"First Floor: {first_floor['total_locations']} locations")
-    
-    # Demo navigation (simulate current location)
-    print("\n--- Navigation Demo ---")
-    # Simulate detecting a QR code
-    current_location_data = {
-        "location_id": "MAIN_ENTRANCE",
-        "floor_level": "0",
-        "coordinates": "0,32",
-        "description": "Main Building Entrance"
-    }
-    
-    nav_system.current_location = current_location_data
-    nav_system.current_floor = "0"
-    
-    # Get route to a destination
-    route_info = nav_system.get_navigation_route("N101")
-    if route_info:
-        print(f"Route to {route_info['destination']['description']}:")
-        print(f"  - Floor change needed: {route_info['floor_change_needed']}")
-        print(f"  - Estimated time: {route_info['estimated_time']:.1f} minutes")
-        print("  - Instructions:")
-        for instruction in route_info['instructions']:
-            print(f"    {instruction}")
-    
-    print("\n✅ FICT Navigation System Demo Complete!")
-
-if __name__ == "__main__":
-    main()

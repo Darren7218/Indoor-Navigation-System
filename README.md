@@ -138,14 +138,14 @@ python main.py --cli
 
 ## 🗺️ FICT Building Layout
 
-### Ground Floor (Blue QR Codes Frame)
+### Ground Floor (Blue QR Codes)
 - **77 locations** including:
   - Main entrance and exits
   - Lecture halls and classrooms
   - Administrative offices
   - Common areas and facilities
 
-### First Floor (Red QR Codes Frame)
+### First Floor (Red QR Codes)
 - **72 locations** including:
   - Faculty offices
   - Research laboratories
@@ -301,4 +301,3 @@ For technical support or questions:
 ---
 
 **Note**: This system is specifically designed for the FICT Building. Always test thoroughly in your specific environment before deploying in production settings.
-

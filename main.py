@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 # Import system modules
-from config import create_directories, save_config, UI_SETTINGS, THEMES
+from config import create_directories, UI_SETTINGS, THEMES
 from qr_detection import QRCodeDetector
 from qr_reader import QRCodeReader, LocationData
 from fic_navigation_integration import FICTNavigationSystem
@@ -249,27 +249,6 @@ class IndoorNavigationSystem:
         except Exception as e:
             self.logger.warning(f"Failed to apply theme: {e}")
     
-    def run_command_line(self):
-        """Run the system in command-line mode for testing"""
-        if not self.is_initialized:
-            self.logger.error("Cannot run command line - system not initialized")
-            return
-        
-        self.logger.info("Running in command-line mode")
-        
-        try:
-            # Test QR detection
-            self._test_qr_detection()
-            
-            # Test route calculation
-            self._test_route_calculation()
-            
-            # Audio feedback is now handled automatically in GUI
-            
-        except KeyboardInterrupt:
-            self.logger.info("Command line mode interrupted by user")
-        except Exception as e:
-            self.logger.error(f"Command line mode error: {e}")
 
     def run_fict_cli(self):
         """Run a FICT-only CLI flow: scan QR -> choose destination -> compute shortest path."""
@@ -334,46 +313,7 @@ class IndoorNavigationSystem:
                 speaker.speak(step)
             speaker.shutdown()
     
-    def _test_qr_detection(self):
-        """Test QR code detection functionality"""
-        self.logger.info("Testing QR code detection...")
-        
-        # This would normally test with actual camera
-        # For now, we'll just verify the detector is working
-        if self.qr_detector and hasattr(self.qr_detector, 'cap'):
-            if self.qr_detector.cap and self.qr_detector.cap.isOpened():
-                self.logger.info("QR detector camera initialized successfully")
-            else:
-                self.logger.warning("QR detector camera not available")
-        else:
-            self.logger.warning("QR detector not properly initialized")
     
-    def _test_route_calculation(self):
-        """Test route calculation functionality"""
-        self.logger.info("Testing route calculation...")
-        
-        # Create a test location
-        test_location = LocationData(
-            qr_data='{"location_id": "MAIN_ENTRANCE", "floor_level": 0, "coordinates": [0, 0]}',
-            confidence=0.9
-        )
-        
-        # Calculate a test route using FICT navigation
-        try:
-            route = self.fict_nav.calculate_route(test_location, "N101")
-            
-            if route:
-                self.logger.info("Route calculation test successful")
-                route_summary = self.fict_nav.get_route_summary(route)
-                print("\n" + "="*50)
-                print("ROUTE CALCULATION TEST")
-                print("="*50)
-                print(route_summary)
-                print("="*50)
-            else:
-                self.logger.warning("Route calculation test failed - no route found")
-        except Exception as e:
-            self.logger.error(f"Route calculation test error: {e}")
     
     # Audio feedback is now handled automatically in GUI
     
@@ -418,14 +358,12 @@ def print_usage():
     
     Options:
         --gui, -g          Start graphical user interface (default)
-        --cli, -c          Run generic command-line tests (legacy)
         --fict, -f         Run FICT-only flow: scan QR -> choose destination -> shortest path
         --help, -h         Show this help message
     
     Examples:
         python main.py          # Start GUI
-        python main.py --cli    # Run command-line tests
-        python main.py --help   # Show help
+        python main.py --fict   # Run FICT CLI flow
     """
     print(usage)
 
@@ -440,8 +378,6 @@ def main():
         if arg in ['--help', '-h']:
             print_usage()
             return 0
-        elif arg in ['--cli', '-c']:
-            run_mode = 'cli'
         elif arg in ['--fict', '-f']:
             run_mode = 'fict'
         elif arg in ['--gui', '-g']:
@@ -465,9 +401,7 @@ def main():
         print("System initialized successfully!")
         
         # Run in selected mode
-        if run_mode == 'cli':
-            nav_system.run_command_line()
-        elif run_mode == 'fict':
+        if run_mode == 'fict':
             nav_system.run_fict_cli()
         else:
             print("Starting graphical user interface...")
