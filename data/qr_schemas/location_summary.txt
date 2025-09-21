@@ -3,83 +3,87 @@ FICT Building Location Summary
 
 GROUND FLOOR (Blue QR Codes):
 ------------------------------
-NG-001: Office at 10,5
-NG-002: Office at 15,5
-NG-003: Office at 20,5
-NG-004: Office at 25,5
-NG-005: Office at 30,5
-NG-006: Office at 35,5
-NG-007: Office at 40,5
-NG-008: Office at 45,5
-NG-009: Office at 50,5
-NG-010: Office at 55,5
-NG-011: Office at 60,5
-NG-012: Office at 65,5
-NG-013: Office at 70,5
-NG-014: Office at 75,5
-NG-015: Office at 10,15
-NG-016: Office at 15,15
-NG-017: Office at 20,15
-NG-018: Office at 25,15
-NG-019: Office at 30,15
-NG-020: Office at 35,15
-NG-021: Office at 40,15
-NG-022: Office at 45,15
-NG-024: Office at 5,25
-NG-025: Office at 5,30
-NG-026: Office at 5,35
-NG-027: Office at 5,40
-NG-028: Office at 5,45
-NG-029: Office at 10,50
-NG-030: Office at 15,50
-NG-031: Office at 10,60
-NG-032: Office at 15,60
-NG-033: Office at 20,60
-NG-034: Office at 25,60
-NG-035: Office at 30,60
-NG-036: Office at 35,60
-NG-037: Office at 40,60
-NG-038: Office at 45,60
-NG-039: Office at 50,60
-NG-040: Office at 55,60
-NG-041: Office at 60,60
-NG-042: Office at 65,60
-NG-043: Office at 70,60
-NG-044: Office at 75,60
-NG-045: Office at 80,60
-NG-046: Office at 85,60
-NG-047: Office at 90,60
-NG-048: Office at 95,60
-NG-049: Office at 100,60
-NG-050: Office at 105,60
-NG-051: Office at 110,60
-NG-052: Office at 115,60
-N007: Lecture Room 7 - Open-Office Style Classroom at 120,10
-N006: Lecture Room 6 at 130,10
-N005: Lecture Room 5 at 140,10
-N004: Lecture Room 4 at 150,10
-N003: Lecture Room 3 at 160,10
-N002: Lecture Room 2 at 170,10
-N001: Lecture Room 1 at 180,10
-N008: Microsoft Software Engineering Laboratory at 120,50
-N009: Silverlake Lab at 130,50
-N010: Cisco Networking Academy Laboratory at 140,50
-N011: IPSR Lab at 150,50
-N012: Laboratory at 160,50
-NGT6: Female Toilet at 50,20
-NGT7: Male Toilet at 55,20
-NGT3: Disable Toilet at 155,35
-NGT5: Female Toilet at 125,45
-NGT4: Male Toilet at 130,45
-NGT1: Female Toilet at 175,45
-NGT2: Male Toilet at 180,45
-STAIRS_G1: Staircase to First Floor at 42,25
-STAIRS_G2: Staircase to First Floor at 155,25
-STAIRS_G3: Staircase to First Floor at 175,25
-MAIN_ENTRANCE: Main Building Entrance at 0,32
-CORRIDOR_MAIN: Main Corridor at 85,32
-CORRIDOR_LECTURE: Lecture Room Corridor at 150,5
-CORRIDOR_LAB: Laboratory Corridor at 150,55
+NG-001: Office at 14,10
+NG-002: Office at 13,10
+NG-003: Office at 12,10
+NG-004: Office at 11,10
+NG-005: Office at 10,10
+NG-006: Office at 9,10
+NG-007: Office at 8,10
+NG-008: Office at 7,10
+NG-009: Office at 6,10
+NG-010: Office at 5,10
+NG-011: Office at 4,10
+NG-012: Office at 3,10
+NG-013: Office at 2,10
+NG-014: Office at 1,10
+NG-015: Office at 12,8
+NG-016: Office at 11,8
+NG-017: Office at 10,8
+NG-018: Office at 9,8
+NG-019: Office at 8,8
+NG-020: Office at 7,8
+NG-021: Office at 6,8
+NG-022: Office at 5,8
+NG-023: Office at 2,7
+NG-024: Office at 0,7
+NG-025: Office at 0,6
+NG-026: Office at 0,5
+NG-027: Office at 0,4
+NG-028: Office at 0,3
+NG-029: Office at 2,4
+NG-030: Office at 2,3
+NG-031: Office at 0,0
+NG-032: Office at 1,0
+NG-033: Office at 2,0
+NG-034: Office at 3,0
+NG-035: Office at 4,0
+NG-036: Office at 5,1
+NG-037: Office at 6,1
+NG-038: Office at 7,1
+NG-039: Office at 8,1
+NG-040: Office at 9,1
+NG-041: Office at 10,1
+NG-042: Office at 11,1
+NG-043: Office at 13,1
+NG-044: Office at 12,3
+NG-045: Office at 11,3
+NG-046: Office at 10,3
+NG-047: Office at 9,3
+NG-048: Office at 8,3
+NG-049: Office at 7,3
+NG-050: Office at 6,3
+NG-051: Office at 5,3
+NG-052: Office at 4,3
+N007: Lecture Room 7 - Open-Office Style Classroom at 18,5
+N006: Lecture Room 6 at 23,5
+N005: Lecture Room 5 at 28,5
+N004: Lecture Room 4 at 33,5
+N003: Lecture Room 3 at 43,5
+N002: Lecture Room 2 at 48,5
+N001: Lecture Room 1 at 53,5
+N008: Microsoft Software Engineering Laboratory at 17,2
+N009: Silverlake Lab at 27,2
+N010: Cisco Networking Academy Laboratory at 32,2
+N011: IPSR Lab at 42,2
+N012: Laboratory at 47,2
+NGT6: Female Toilet at 5,8
+NGT7: Male Toilet at 5,6
+NGT3: Disable Toilet at 22,2
+NGT5: Female Toilet at 22,2
+NGT4: Male Toilet at 22,2
+NGT1: Female Toilet at 53,2
+NGT2: Male Toilet at 50,2
+STAIRS_G1: Staircase to First Floor at 13,5
+STAIRS_G2: Staircase to First Floor at 38,5
+STAIRS_G3: Staircase to First Floor at 156,2
+MAIN_ENTRANCE: Main Building Entrance (between N004,N003) at 39,10
+SECOND_ENTRANCE: Entrance beside of NG-001 at 15,9
+THIRD_ENTRANCE: Entrance beside NG-043 at 15,2
+FOURTH_ENTRANCE: Entrance between N010 and N011 at 37,2
+CORRIDOR_1: Corridor in front of STAIRS_G1 at 15,4
+CORRIDOR_2: Corridor in front of NGT3 disable toilet at 22,3
+CORRIDOR_3: Corridor in front of MAIN_ENTRANCE at 39,4
 
 FIRST FLOOR (Red QR Codes):
 ------------------------------
@@ -156,5 +160,5 @@ CORRIDOR_MAIN_F1: Main Corridor at 85,30
 CORRIDOR_LECTURE_F1: Lecture Room Corridor at 150,5
 CORRIDOR_LAB_F1: Laboratory Corridor at 150,55
 
-Total: 149 locations
-Generated: 149 QR codes
+Total: 153 locations
+Generated: 153 QR codes
