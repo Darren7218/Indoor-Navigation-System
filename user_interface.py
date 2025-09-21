@@ -18,7 +18,7 @@ import cv2
 
 from qr_detection import QRCodeDetector
 from qr_reader import QRCodeReader, LocationData
-from fic_navigation_integration import FICTNavigationSystem, NavigationRoute
+from fic_navigation_integration import FICTNavigationSystem, NavigationRoute, RouteSegment
 from config import UI_SETTINGS, AUDIO_SETTINGS, THEMES
 from audio_feedback import AudioFeedback
 
@@ -608,17 +608,33 @@ class NavigationInterface(QMainWindow):
         except Exception as e:
             self._log_status(f"Error calculating route: {e}")
             QMessageBox.critical(self, "Route Error", f"Failed to calculate route: {e}")
-    
-    def _display_route(self, route: NavigationRoute):
-        """Display the calculated route"""
-        route_summary = self.fict_nav.get_route_summary(route)
-        self.route_display.setText(route_summary)
+        
+    def _display_route(self, route: List[RouteSegment]):
+        """Display the calculated route using new RouteSegment structure"""
+        if not route:
+            self.route_display.setText("No route available")
+            return
+        
+        # Create route summary
+        total_distance = sum(seg.distance for seg in route)
+        total_time = sum(seg.estimated_time for seg in route) / 60.0  # Convert to minutes
+        
+        route_text = f"Route Summary:\n"
+        route_text += f"Total Distance: {total_distance:.1f} meters\n"
+        route_text += f"Estimated Time: {total_time:.1f} minutes\n\n"
+        route_text += "Turn-by-turn Instructions:\n"
+        
+        for i, segment in enumerate(route, 1):
+            route_text += f"{i}. {segment.instructions}\n"
+        
+        self.route_display.setText(route_text)
         
         # Show progress bar
         self.navigation_progress.setVisible(True)
-        self.navigation_progress.setMaximum(len(route.segments))
+        self.navigation_progress.setMaximum(len(route))
         self.navigation_progress.setValue(0)
-    
+        
+
     def _speak_route_instructions(self, route_info):
         """Automatically speak route instructions after calculation with clean formatting."""
         self._log_status("Starting route voice instructions...")
@@ -630,62 +646,37 @@ class NavigationInterface(QMainWindow):
             
             self._log_status(f"Speaking route to: {destination_id}")
             
-            # Get clean instructions
+            # Get clean instructions from the new structure
             instructions = route_info.get('instructions', [])
             
             if instructions:
                 # Create a clean, consolidated message
-                # Start with route announcement
                 route_intro = f"Route to {destination_id} calculated. Starting navigation."
                 
-                # Clean up instructions - remove duplicate step numbering and inline accessibility notes
-                cleaned_instructions = []
-                for instruction in instructions:
-                    # Skip accessibility notes that appear as separate items
-                    if instruction.startswith("Accessibility note:") or instruction.startswith("Note: This route") or instruction.startswith("Note: Minor accessibility"):
-                        continue
-                    
-                    # Clean up the instruction text
-                    clean_instruction = instruction.strip()
-                    
-                    # Remove redundant "Step X: Step X:" patterns
-                    import re
-                    clean_instruction = re.sub(r'^Step \d+:\s*Step \d+:\s*', '', clean_instruction)
-                    
-                    # Make sure we still have step numbering
-                    if not clean_instruction.startswith("Step") and not clean_instruction.startswith("Final"):
-                        # This shouldn't happen with our fixed method, but just in case
-                        step_num = len(cleaned_instructions) + 1
-                        clean_instruction = f"Step {step_num}: {clean_instruction}"
-                    
-                    cleaned_instructions.append(clean_instruction)
-                
-                # Combine everything into a single speech block
-                if cleaned_instructions:
-                    full_speech = route_intro + ". " + ". ".join(cleaned_instructions)
-                else:
-                    full_speech = route_intro + ". No detailed instructions available."
+                # Join all instructions
+                full_speech = route_intro + ". " + ". ".join(instructions)
                 
                 # Speak the entire block with priority (uninterrupted)
                 self.audio_feedback.speak(full_speech, priority=True)
-                self._log_status(f"Queued clean route instructions: {full_speech}")
+                self._log_status(f"Queued clean route instructions")
 
             else:
                 fallback_text = f"Route to {destination_id} calculated. No detailed instructions available."
                 self.audio_feedback.speak(fallback_text, priority=True)
-                self._log_status(f"Queued fallback route message: {fallback_text}")
+                self._log_status(f"Queued fallback route message")
 
         except Exception as e:
             self._log_status(f"Error queuing route speech: {e}")
             import traceback
-            self._log_status(f"Traceback: {traceback.format_exc()}")
-    
+            self._log_status(f"Traceback: {traceback.format_exc()}")    
+
+            
     def _log_status(self, message: str):
         """Log status message to the status log"""
         timestamp = time.strftime("%H:%M:%S")
         log_entry = f"[{timestamp}] {message}"
         self.status_log.append(log_entry)
-        
+            
         # Keep only last 100 lines
         lines = self.status_log.toPlainText().split('\n')
         if len(lines) > 100:

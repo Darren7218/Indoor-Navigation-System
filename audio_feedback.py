@@ -2,6 +2,10 @@
 pyttsx3-based audio feedback engine with non-blocking speech.
 Integrates via speak(text, priority=False), set_volume, set_rate, shutdown.
 """
+"""
+Updated audio_feedback.py with cleaner voice instructions
+Removes bracketed contextual information and ensures single female voice
+"""
 
 import logging
 import threading
@@ -50,13 +54,16 @@ class AudioFeedback:
         self._start_worker()
 
     def speak(self, text: str, priority: bool = False) -> None:
-        """Queue text for speech - NON-BLOCKING."""
+        """Queue text for speech - NON-BLOCKING. Cleans bracketed content."""
         if not text or not text.strip():
             return
         
-        text = text.strip()
+        # Clean the text: remove bracketed content and simplify
+        cleaned_text = self._clean_navigation_text(text.strip())
+        
         logging.info(f"=== SPEAK REQUEST (NON-BLOCKING) ===")
-        logging.info(f"Text: {text[:100]}...")
+        logging.info(f"Original: {text[:100]}...")
+        logging.info(f"Cleaned: {cleaned_text[:100]}...")
         logging.info(f"Priority: {priority}")
         logging.info(f"Thread: {threading.current_thread().name}")
         logging.info(f"Worker running: {self._running}")
@@ -71,11 +78,11 @@ class AudioFeedback:
             if priority:
                 # Clear queue and add priority message
                 self._clear_queue()
-                self._queue.put(text, block=False)
+                self._queue.put(cleaned_text, block=False)
                 logging.info("Added priority speech to queue")
             else:
                 # Add to queue (non-blocking)
-                self._queue.put(text, block=False)
+                self._queue.put(cleaned_text, block=False)
                 logging.info("Added speech to queue")
             
             # Log queue status
@@ -84,7 +91,147 @@ class AudioFeedback:
         except queue.Full:
             logging.warning("Speech queue full, skipping message")
         except Exception as e:
-            logging.error(f"Error queueing speech: {e}")
+            logging.error(f"Error during shutdown: {e}")
+
+    def _start_worker(self) -> None:
+        """Start the background worker thread."""
+        try:
+            # Stop any existing worker
+            if self._worker and self._worker.is_alive():
+                logging.info("Stopping existing worker thread")
+                old_running = self._running
+                self._running = False
+                try:
+                    self._queue.put("__QUIT__")
+                    self._worker.join(timeout=2.0)
+                except Exception as e:
+                    logging.error(f"Error stopping old worker: {e}")
+                self._running = old_running
+            
+            # Start new worker
+            self._running = True
+            self._worker = threading.Thread(target=self._worker_loop, daemon=True, name="AudioWorker")
+            self._worker.start()
+            logging.info("Audio worker thread started")
+            
+            # Give worker thread time to initialize
+            time.sleep(0.1)
+                
+        except Exception as e:
+            logging.error(f"Error starting worker thread: {e}")
+
+    def _clear_queue(self) -> None:
+        try:
+            cleared_count = 0
+            while not self._queue.empty():
+                try:
+                    self._queue.get_nowait()
+                    cleared_count += 1
+                except queue.Empty:
+                    break
+            if cleared_count > 0:
+                logging.info(f"Cleared {cleared_count} messages from queue")
+        except Exception as e:
+            logging.error(f"Error clearing queue: {e}")
+
+    def _worker_loop(self) -> None:
+        """Worker thread loop - handles all speech in background."""
+        logging.info("TTS worker thread started")
+        
+        processed_count = 0
+
+        while self._running:
+            try:
+                # Get text from queue (blocking with timeout)
+                try:
+                    text = self._queue.get(timeout=0.5)
+                except queue.Empty:
+                    continue
+                
+                if text == "__QUIT__":
+                    logging.info("Worker: Received quit signal")
+                    break
+                
+                # Create a fresh engine for each speech request
+                logging.info(f"Worker: Processing message #{processed_count + 1}: {text[:50]}...")
+                engine = self._create_fresh_engine()
+                
+                if engine is None:
+                    logging.error("Worker: Failed to create engine, skipping message")
+                    continue
+                
+                # Speak the text with fresh engine
+                try:
+                    logging.info(f"Worker: Speaking with fresh engine...")
+                    engine.say(text)
+                    engine.runAndWait()
+                    
+                    processed_count += 1
+                    logging.info(f"Worker: Speech #{processed_count} completed successfully")
+                    
+                except Exception as e:
+                    logging.error(f"Worker: Speech error: {e}")
+                    import traceback
+                    logging.error(f"Worker: Speech traceback: {traceback.format_exc()}")
+                
+                # Clean up engine immediately after use
+                try:
+                    engine.stop()
+                    del engine
+                    logging.info("Worker: Engine cleaned up")
+                except Exception as e:
+                    logging.warning(f"Worker: Engine cleanup warning: {e}")
+                
+                # Clean up COM for this iteration (Windows)
+                try:
+                    import sys as _sys
+                    if _sys.platform.startswith('win'):
+                        try:
+                            import pythoncom
+                            pythoncom.CoUninitialize()
+                            logging.info("Worker: COM cleaned up")
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+                    
+            except Exception as e:
+                logging.error(f"Worker loop error: {e}")
+                import traceback
+                logging.error(f"Worker loop traceback: {traceback.format_exc()}")
+                time.sleep(0.1)
+                continue
+        
+        logging.info(f"TTS worker thread stopped (processed {processed_count} messages)")
+
+    def _clean_navigation_text(self, text: str) -> str:
+        """Clean navigation text by removing bracketed content and redundant information."""
+        import re
+        
+        # Remove content in parentheses (contextual information)
+        text = re.sub(r'\([^)]*\)', '', text)
+        
+        # Remove duplicate "Step X: Step X:" patterns
+        text = re.sub(r'Step \d+:\s*Step \d+:\s*', '', text)
+        
+        # Remove accessibility notes that appear as separate sentences
+        text = re.sub(r'\s*[-–]\s*[Nn]ote:\s*[^.]*\.?', '', text)
+        text = re.sub(r'\s*[Aa]ccessibility note:[^.]*\.?', '', text)
+        text = re.sub(r'\s*[Tt]his route may have accessibility challenges\.?', '', text)
+        text = re.sub(r'\s*[Mm]inor accessibility considerations\.?', '', text)
+        
+        # Clean up multiple spaces and periods
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'\.+', '.', text)
+        
+        # Remove trailing punctuation if redundant
+        text = text.strip(' ,.-')
+        
+        # Ensure sentence ends with period for better speech flow
+        if text and not text.endswith('.'):
+            text += '.'
+            
+        return text
 
     def _create_fresh_engine(self):
         """Create a completely fresh TTS engine for each speech request."""
@@ -212,115 +359,4 @@ class AudioFeedback:
                 self._queue.put("__QUIT__")
                 self._worker.join(timeout=3.0)
         except Exception as e:
-            logging.error(f"Error during shutdown: {e}")
-
-    def _start_worker(self) -> None:
-        """Start the background worker thread."""
-        try:
-            # Stop any existing worker
-            if self._worker and self._worker.is_alive():
-                logging.info("Stopping existing worker thread")
-                old_running = self._running
-                self._running = False
-                try:
-                    self._queue.put("__QUIT__")
-                    self._worker.join(timeout=2.0)
-                except Exception as e:
-                    logging.error(f"Error stopping old worker: {e}")
-                self._running = old_running
-            
-            # Start new worker
-            self._running = True
-            self._worker = threading.Thread(target=self._worker_loop, daemon=True, name="AudioWorker")
-            self._worker.start()
-            logging.info("Audio worker thread started")
-            
-            # Give worker thread time to initialize
-            time.sleep(0.1)
-                
-        except Exception as e:
-            logging.error(f"Error starting worker thread: {e}")
-
-    def _clear_queue(self) -> None:
-        try:
-            cleared_count = 0
-            while not self._queue.empty():
-                try:
-                    self._queue.get_nowait()
-                    cleared_count += 1
-                except queue.Empty:
-                    break
-            if cleared_count > 0:
-                logging.info(f"Cleared {cleared_count} messages from queue")
-        except Exception as e:
-            logging.error(f"Error clearing queue: {e}")
-
-    def _worker_loop(self) -> None:
-        """Worker thread loop - handles all speech in background."""
-        logging.info("TTS worker thread started")
-        
-        processed_count = 0
-
-        while self._running:
-            try:
-                # Get text from queue (blocking with timeout)
-                try:
-                    text = self._queue.get(timeout=0.5)
-                except queue.Empty:
-                    continue
-                
-                if text == "__QUIT__":
-                    logging.info("Worker: Received quit signal")
-                    break
-                
-                # Create a fresh engine for each speech request
-                logging.info(f"Worker: Processing message #{processed_count + 1}: {text[:50]}...")
-                engine = self._create_fresh_engine()
-                
-                if engine is None:
-                    logging.error("Worker: Failed to create engine, skipping message")
-                    continue
-                
-                # Speak the text with fresh engine
-                try:
-                    logging.info(f"Worker: Speaking with fresh engine...")
-                    engine.say(text)
-                    engine.runAndWait()
-                    
-                    processed_count += 1
-                    logging.info(f"Worker: Speech #{processed_count} completed successfully")
-                    
-                except Exception as e:
-                    logging.error(f"Worker: Speech error: {e}")
-                    import traceback
-                    logging.error(f"Worker: Speech traceback: {traceback.format_exc()}")
-                
-                # Clean up engine immediately after use
-                try:
-                    engine.stop()
-                    del engine
-                    logging.info("Worker: Engine cleaned up")
-                except Exception as e:
-                    logging.warning(f"Worker: Engine cleanup warning: {e}")
-                
-                # Clean up COM for this iteration (Windows)
-                try:
-                    import sys as _sys
-                    if _sys.platform.startswith('win'):
-                        try:
-                            import pythoncom
-                            pythoncom.CoUninitialize()
-                            logging.info("Worker: COM cleaned up")
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
-                    
-            except Exception as e:
-                logging.error(f"Worker loop error: {e}")
-                import traceback
-                logging.error(f"Worker loop traceback: {traceback.format_exc()}")
-                time.sleep(0.1)
-                continue
-        
-        logging.info(f"TTS worker thread stopped (processed {processed_count} messages)")
+            logging
