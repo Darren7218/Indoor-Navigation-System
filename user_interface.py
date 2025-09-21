@@ -5,6 +5,7 @@ Optimized for visually impaired users
 """
 
 import time
+import logging
 from typing import Optional, List
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QLabel, QTextEdit,
@@ -619,7 +620,7 @@ class NavigationInterface(QMainWindow):
         self.navigation_progress.setValue(0)
     
     def _speak_route_instructions(self, route_info):
-        """Automatically speak route instructions after calculation."""
+        """Automatically speak route instructions after calculation with clean formatting."""
         self._log_status("Starting route voice instructions...")
         
         try:
@@ -629,20 +630,48 @@ class NavigationInterface(QMainWindow):
             
             self._log_status(f"Speaking route to: {destination_id}")
             
-            # Use a single, consolidated message with priority
-            route_summary = f"Route to {destination_id} calculated. Starting navigation."
+            # Get clean instructions
             instructions = route_info.get('instructions', [])
             
             if instructions:
-                # Combine all instructions into a single block for uninterrupted playback
-                full_instructions = [route_summary] + [f"Step {i+1}: {inst}" for i, inst in enumerate(instructions)]
-                full_text = ". ".join(full_instructions)
+                # Create a clean, consolidated message
+                # Start with route announcement
+                route_intro = f"Route to {destination_id} calculated. Starting navigation."
                 
-                # Speak the entire block with priority
-                self.audio_feedback.speak(full_text, priority=True)
-                self._log_status(f"Queued consolidated route instructions: {full_text}")
+                # Clean up instructions - remove duplicate step numbering and inline accessibility notes
+                cleaned_instructions = []
+                for instruction in instructions:
+                    # Skip accessibility notes that appear as separate items
+                    if instruction.startswith("Accessibility note:") or instruction.startswith("Note: This route") or instruction.startswith("Note: Minor accessibility"):
+                        continue
+                    
+                    # Clean up the instruction text
+                    clean_instruction = instruction.strip()
+                    
+                    # Remove redundant "Step X: Step X:" patterns
+                    import re
+                    clean_instruction = re.sub(r'^Step \d+:\s*Step \d+:\s*', '', clean_instruction)
+                    
+                    # Make sure we still have step numbering
+                    if not clean_instruction.startswith("Step") and not clean_instruction.startswith("Final"):
+                        # This shouldn't happen with our fixed method, but just in case
+                        step_num = len(cleaned_instructions) + 1
+                        clean_instruction = f"Step {step_num}: {clean_instruction}"
+                    
+                    cleaned_instructions.append(clean_instruction)
+                
+                # Combine everything into a single speech block
+                if cleaned_instructions:
+                    full_speech = route_intro + ". " + ". ".join(cleaned_instructions)
+                else:
+                    full_speech = route_intro + ". No detailed instructions available."
+                
+                # Speak the entire block with priority (uninterrupted)
+                self.audio_feedback.speak(full_speech, priority=True)
+                self._log_status(f"Queued clean route instructions: {full_speech}")
+
             else:
-                fallback_text = f"{route_summary}. No detailed instructions available."
+                fallback_text = f"Route to {destination_id} calculated. No detailed instructions available."
                 self.audio_feedback.speak(fallback_text, priority=True)
                 self._log_status(f"Queued fallback route message: {fallback_text}")
 
@@ -650,7 +679,6 @@ class NavigationInterface(QMainWindow):
             self._log_status(f"Error queuing route speech: {e}")
             import traceback
             self._log_status(f"Traceback: {traceback.format_exc()}")
-
     
     def _log_status(self, message: str):
         """Log status message to the status log"""

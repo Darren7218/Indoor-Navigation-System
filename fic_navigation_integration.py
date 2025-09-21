@@ -174,83 +174,87 @@ class FICTNavigationSystem:
         """Add detailed location information to the locations dictionary."""
         # Ground Floor locations
         ground_floor_details = {
-            "NG-001": {"coordinates": "10,5", "description": "Office", "type": "office"},
-            "NG-002": {"coordinates": "15,5", "description": "Office", "type": "office"},
-            "NG-003": {"coordinates": "20,5", "description": "Office", "type": "office"},
-            "NG-004": {"coordinates": "25,5", "description": "Office", "type": "office"},
-            "NG-005": {"coordinates": "30,5", "description": "Office", "type": "office"},
-            "NG-006": {"coordinates": "35,5", "description": "Office", "type": "office"},
-            "NG-007": {"coordinates": "40,5", "description": "Office", "type": "office"},
-            "NG-008": {"coordinates": "45,5", "description": "Office", "type": "office"},
-            "NG-009": {"coordinates": "50,5", "description": "Office", "type": "office"},
-            "NG-010": {"coordinates": "55,5", "description": "Office", "type": "office"},
-            "NG-011": {"coordinates": "60,5", "description": "Office", "type": "office"},
-            "NG-012": {"coordinates": "65,5", "description": "Office", "type": "office"},
-            "NG-013": {"coordinates": "70,5", "description": "Office", "type": "office"},
-            "NG-014": {"coordinates": "75,5", "description": "Office", "type": "office"},
-            "NG-015": {"coordinates": "10,15", "description": "Office", "type": "office"},
-            "NG-016": {"coordinates": "15,15", "description": "Office", "type": "office"},
-            "NG-017": {"coordinates": "20,15", "description": "Office", "type": "office"},
-            "NG-018": {"coordinates": "25,15", "description": "Office", "type": "office"},
-            "NG-019": {"coordinates": "30,15", "description": "Office", "type": "office"},
-            "NG-020": {"coordinates": "35,15", "description": "Office", "type": "office"},
-            "NG-021": {"coordinates": "40,15", "description": "Office", "type": "office"},
-            "NG-022": {"coordinates": "45,15", "description": "Office", "type": "office"},
-            "NG-024": {"coordinates": "5,25", "description": "Office", "type": "office"},
-            "NG-025": {"coordinates": "5,30", "description": "Office", "type": "office"},
-            "NG-026": {"coordinates": "5,35", "description": "Office", "type": "office"},
-            "NG-027": {"coordinates": "5,40", "description": "Office", "type": "office"},
-            "NG-028": {"coordinates": "5,45", "description": "Office", "type": "office"},
-            "NG-029": {"coordinates": "10,50", "description": "Office", "type": "office"},
-            "NG-030": {"coordinates": "15,50", "description": "Office", "type": "office"},
-            "NG-031": {"coordinates": "10,60", "description": "Office", "type": "office"},
-            "NG-032": {"coordinates": "15,60", "description": "Office", "type": "office"},
-            "NG-033": {"coordinates": "20,60", "description": "Office", "type": "office"},
-            "NG-034": {"coordinates": "25,60", "description": "Office", "type": "office"},
-            "NG-035": {"coordinates": "30,60", "description": "Office", "type": "office"},
-            "NG-036": {"coordinates": "35,60", "description": "Office", "type": "office"},
-            "NG-037": {"coordinates": "40,60", "description": "Office", "type": "office"},
-            "NG-038": {"coordinates": "45,60", "description": "Office", "type": "office"},
-            "NG-039": {"coordinates": "50,60", "description": "Office", "type": "office"},
-            "NG-040": {"coordinates": "55,60", "description": "Office", "type": "office"},
-            "NG-041": {"coordinates": "60,60", "description": "Office", "type": "office"},
-            "NG-042": {"coordinates": "65,60", "description": "Office", "type": "office"},
-            "NG-043": {"coordinates": "70,60", "description": "Office", "type": "office"},
-            "NG-044": {"coordinates": "75,60", "description": "Office", "type": "office"},
-            "NG-045": {"coordinates": "80,60", "description": "Office", "type": "office"},
-            "NG-046": {"coordinates": "85,60", "description": "Office", "type": "office"},
-            "NG-047": {"coordinates": "90,60", "description": "Office", "type": "office"},
-            "NG-048": {"coordinates": "95,60", "description": "Office", "type": "office"},
-            "NG-049": {"coordinates": "100,60", "description": "Office", "type": "office"},
-            "NG-050": {"coordinates": "105,60", "description": "Office", "type": "office"},
-            "NG-051": {"coordinates": "110,60", "description": "Office", "type": "office"},
-            "NG-052": {"coordinates": "115,60", "description": "Office", "type": "office"},
-            "N007": {"coordinates": "120,10", "description": "Lecture Room 7 - Open-Office Style Classroom", "type": "lecture_room"},
-            "N006": {"coordinates": "130,10", "description": "Lecture Room 6", "type": "lecture_room"},
-            "N005": {"coordinates": "140,10", "description": "Lecture Room 5", "type": "lecture_room"},
-            "N004": {"coordinates": "150,10", "description": "Lecture Room 4", "type": "lecture_room"},
-            "N003": {"coordinates": "160,10", "description": "Lecture Room 3", "type": "lecture_room"},
-            "N002": {"coordinates": "170,10", "description": "Lecture Room 2", "type": "lecture_room"},
-            "N001": {"coordinates": "180,10", "description": "Lecture Room 1", "type": "lecture_room"},
-            "N008": {"coordinates": "120,50", "description": "Microsoft Software Engineering Laboratory", "type": "laboratory"},
-            "N009": {"coordinates": "130,50", "description": "Silverlake Lab", "type": "laboratory"},
-            "N010": {"coordinates": "140,50", "description": "Cisco Networking Academy Laboratory", "type": "laboratory"},
-            "N011": {"coordinates": "150,50", "description": "IPSR Lab", "type": "laboratory"},
-            "N012": {"coordinates": "160,50", "description": "Laboratory", "type": "laboratory"},
-            "NGT6": {"coordinates": "50,20", "description": "Female Toilet", "type": "facility"},
-            "NGT7": {"coordinates": "55,20", "description": "Male Toilet", "type": "facility"},
-            "NGT3": {"coordinates": "155,35", "description": "Disable Toilet", "type": "facility"},
-            "NGT5": {"coordinates": "125,45", "description": "Female Toilet", "type": "facility"},
-            "NGT4": {"coordinates": "130,45", "description": "Male Toilet", "type": "facility"},
-            "NGT1": {"coordinates": "175,45", "description": "Female Toilet", "type": "facility"},
-            "NGT2": {"coordinates": "180,45", "description": "Male Toilet", "type": "facility"},
-            "STAIRS_G1": {"coordinates": "42,25", "description": "Staircase to First Floor", "type": "stairs"},
-            "STAIRS_G2": {"coordinates": "155,25", "description": "Staircase to First Floor", "type": "stairs"},
-            "STAIRS_G3": {"coordinates": "175,25", "description": "Staircase to First Floor", "type": "stairs"},
-            "MAIN_ENTRANCE": {"coordinates": "0,32", "description": "Main Building Entrance", "type": "entrance"},
-            "CORRIDOR_MAIN": {"coordinates": "85,32", "description": "Main Corridor", "type": "corridor"},
-            "CORRIDOR_LECTURE": {"coordinates": "150,5", "description": "Lecture Room Corridor", "type": "corridor"},
-            "CORRIDOR_LAB": {"coordinates": "150,55", "description": "Laboratory Corridor", "type": "corridor"}
+            "NG-001": {"coordinates": "14,10", "description": "Office", "type": "office"},
+            "NG-002": {"coordinates": "13,10", "description": "Office", "type": "office"},
+            "NG-003": {"coordinates": "12,10", "description": "Office", "type": "office"},
+            "NG-004": {"coordinates": "11,10", "description": "Office", "type": "office"},
+            "NG-005": {"coordinates": "10,10", "description": "Office", "type": "office"},
+            "NG-006": {"coordinates": "9,10", "description": "Office", "type": "office"},
+            "NG-007": {"coordinates": "8,10", "description": "Office", "type": "office"},
+            "NG-008": {"coordinates": "7,10", "description": "Office", "type": "office"},
+            "NG-009": {"coordinates": "6,10", "description": "Office", "type": "office"},
+            "NG-010": {"coordinates": "5,10", "description": "Office", "type": "office"},
+            "NG-011": {"coordinates": "4,10", "description": "Office", "type": "office"},
+            "NG-012": {"coordinates": "3,10", "description": "Office", "type": "office"},
+            "NG-013": {"coordinates": "2,10", "description": "Office", "type": "office"},
+            "NG-014": {"coordinates": "1,10", "description": "Office", "type": "office"},
+            "NG-015": {"coordinates": "12,8", "description": "Office", "type": "office"},
+            "NG-016": {"coordinates": "11,8", "description": "Office", "type": "office"},
+            "NG-017": {"coordinates": "10,8", "description": "Office", "type": "office"},
+            "NG-018": {"coordinates": "9,8", "description": "Office", "type": "office"},
+            "NG-019": {"coordinates": "8,8", "description": "Office", "type": "office"},
+            "NG-020": {"coordinates": "7,8", "description": "Office", "type": "office"},
+            "NG-021": {"coordinates": "6,8", "description": "Office", "type": "office"},
+            "NG-022": {"coordinates": "5,8", "description": "Office", "type": "office"},
+            "NG-023": {"coordinates": "2,7", "description": "Office", "type": "office"},
+            "NG-024": {"coordinates": "0,7", "description": "Office", "type": "office"},
+            "NG-025": {"coordinates": "0,6", "description": "Office", "type": "office"},
+            "NG-026": {"coordinates": "0,5", "description": "Office", "type": "office"},
+            "NG-027": {"coordinates": "0,4", "description": "Office", "type": "office"},
+            "NG-028": {"coordinates": "0,3", "description": "Office", "type": "office"},
+            "NG-029": {"coordinates": "2,4", "description": "Office", "type": "office"},
+            "NG-030": {"coordinates": "2,3", "description": "Office", "type": "office"},
+            "NG-031": {"coordinates": "0,0", "description": "Office", "type": "office"},
+            "NG-032": {"coordinates": "1,0", "description": "Office", "type": "office"},
+            "NG-033": {"coordinates": "2,0", "description": "Office", "type": "office"},
+            "NG-034": {"coordinates": "3,0", "description": "Office", "type": "office"},
+            "NG-035": {"coordinates": "4,0", "description": "Office", "type": "office"},
+            "NG-036": {"coordinates": "5,1", "description": "Office", "type": "office"},
+            "NG-037": {"coordinates": "6,1", "description": "Office", "type": "office"},
+            "NG-038": {"coordinates": "7,1", "description": "Office", "type": "office"},
+            "NG-039": {"coordinates": "8,1", "description": "Office", "type": "office"},
+            "NG-040": {"coordinates": "9,1", "description": "Office", "type": "office"},
+            "NG-041": {"coordinates": "10,1", "description": "Office", "type": "office"},
+            "NG-042": {"coordinates": "11,1", "description": "Office", "type": "office"},
+            "NG-043": {"coordinates": "13,1", "description": "Office", "type": "office"},
+            "NG-044": {"coordinates": "12,3", "description": "Office", "type": "office"},
+            "NG-045": {"coordinates": "11,3", "description": "Office", "type": "office"},
+            "NG-046": {"coordinates": "10,3", "description": "Office", "type": "office"},
+            "NG-047": {"coordinates": "9,3", "description": "Office", "type": "office"},
+            "NG-048": {"coordinates": "8,3", "description": "Office", "type": "office"},
+            "NG-049": {"coordinates": "7,3", "description": "Office", "type": "office"},
+            "NG-050": {"coordinates": "6,3", "description": "Office", "type": "office"},
+            "NG-051": {"coordinates": "5,3", "description": "Office", "type": "office"},
+            "NG-052": {"coordinates": "4,3", "description": "Office", "type": "office"},
+            "N007": {"coordinates": "18,5", "description": "Lecture Room 7 - Open-Office Style Classroom", "type": "lecture_room"},
+            "N006": {"coordinates": "23,5", "description": "Lecture Room 6", "type": "lecture_room"},
+            "N005": {"coordinates": "28,5", "description": "Lecture Room 5", "type": "lecture_room"},
+            "N004": {"coordinates": "33,5", "description": "Lecture Room 4", "type": "lecture_room"},
+            "N003": {"coordinates": "43,5", "description": "Lecture Room 3", "type": "lecture_room"},
+            "N002": {"coordinates": "48,5", "description": "Lecture Room 2", "type": "lecture_room"},
+            "N001": {"coordinates": "53,5", "description": "Lecture Room 1", "type": "lecture_room"},
+            "N008": {"coordinates": "17,2", "description": "Microsoft Software Engineering Laboratory", "type": "laboratory"},
+            "N009": {"coordinates": "27,2", "description": "Silverlake Lab", "type": "laboratory"},
+            "N010": {"coordinates": "32,2", "description": "Cisco Networking Academy Laboratory", "type": "laboratory"},
+            "N011": {"coordinates": "42,2", "description": "IPSR Lab", "type": "laboratory"},
+            "N012": {"coordinates": "47,2", "description": "Laboratory", "type": "laboratory"},
+            "NGT6": {"coordinates": "5,8", "description": "Female Toilet", "type": "facility"},
+            "NGT7": {"coordinates": "5,6", "description": "Male Toilet", "type": "facility"},
+            "NGT3": {"coordinates": "22,2", "description": "Disable Toilet", "type": "facility"},
+            "NGT5": {"coordinates": "22,2", "description": "Female Toilet", "type": "facility"},
+            "NGT4": {"coordinates": "22,2", "description": "Male Toilet", "type": "facility"},
+            "NGT1": {"coordinates": "53,2", "description": "Female Toilet", "type": "facility"},
+            "NGT2": {"coordinates": "50,2", "description": "Male Toilet", "type": "facility"},
+            "STAIRS_G1": {"coordinates": "13,5", "description": "Staircase to First Floor", "type": "stairs"},
+            "STAIRS_G2": {"coordinates": "38,5", "description": "Staircase to First Floor", "type": "stairs"},
+            "STAIRS_G3": {"coordinates": "156,2", "description": "Staircase to First Floor", "type": "stairs"},
+            "MAIN_ENTRANCE": {"coordinates": "39,10", "description": "Main Building Entrance (between N004,N003)", "type": "entrance"},
+            "SECOND_ENTRANCE": {"coordinates": "15,9", "description": "Entrance beside of NG-001", "type": "entrance"},
+            "THIRD_ENTRANCE": {"coordinates": "15, 2", "description": "Entrance beside NG-043", "type": "entrance"},
+            "FOURTH_ENTRANCE": {"coordinates": "37,2", "description": "Entrance between N010 and N011", "type": "entrance"},
+            "CORRIDOR_1": {"coordinates": "15,4", "description": "Corridor in front of STAIRS_G1", "type": "corridor"},
+            "CORRIDOR_2": {"coordinates": "22,3", "description": "Corridor in front of NGT3 disable toilet", "type": "corridor"},
+            "CORRIDOR_3": {"coordinates": "39,4", "description": "Corridor in front of MAIN_ENTRANCE", "type": "corridor"}
         }
         
         # First Floor locations
@@ -430,13 +434,12 @@ class FICTNavigationSystem:
             'instructions': self._generate_navigation_instructions(route, floor_change_needed)
         }
     
-    
-    def _generate_navigation_instructions(self, route, floor_change: bool) -> List[str]:
-        """Generate human-readable navigation instructions."""
+    def _generate_navigation_instructions(self, route, floor_change: bool) -> List[str]:   
+        """Generate enhanced human-readable navigation instructions with specific locations"""
         instructions = []
         
         if floor_change:
-            instructions.append("⚠️ Floor change required")
+            instructions.append("This route requires changing floors - look for staircases or elevators")
         
         # Handle NavigationRoute object
         if hasattr(route, 'segments'):
@@ -449,26 +452,173 @@ class FICTNavigationSystem:
         
         for i, segment in enumerate(segments):
             if hasattr(segment, 'instructions'):
-                # Handle RouteSegment objects
-                instructions.append(f"{i+1}. {segment.instructions}")
+                # Use the enhanced instructions from RouteSegment objects (no duplicate step numbering)
+                instructions.append(f"Step {i+1}: {segment.instructions}")
+                
+                # Add accessibility notes inline if important (not as separate step)
+                if hasattr(segment, 'accessibility_notes') and segment.accessibility_notes != "Route is fully accessible":
+                    instructions[-1] += f" - {segment.accessibility_notes}"
+                    
             elif isinstance(segment, dict):
-                # Handle dictionary segments
+                # Handle dictionary segments with enhanced descriptions
+                step_instruction = f"Step {i+1}: "
+                
                 if segment.get('type') == 'move':
+                    from_loc = segment.get('from_location', 'current position')
+                    to_loc = segment.get('to_location', 'next waypoint')
                     direction = segment.get('direction', 'forward')
                     distance = segment.get('distance', 0)
-                    instructions.append(f"{i+1}. Walk {direction} for {distance}m")
+                    
+                    step_instruction += f"From {from_loc}, walk {self._get_direction_text(direction)} for {distance}m to {to_loc}"
+                    
                 elif segment.get('type') == 'turn':
                     direction = segment.get('direction', 'right')
-                    instructions.append(f"{i+1}. Turn {direction}")
+                    landmark = segment.get('landmark', 'waypoint')
+                    step_instruction += f"Turn {direction} at {landmark}"
+                    
                 elif segment.get('type') == 'floor_change':
                     target_floor = segment.get('target_floor', 'unknown')
-                    instructions.append(f"{i+1}. Take stairs/elevator to floor {target_floor}")
+                    stair_location = segment.get('stair_location', 'staircase')
+                    step_instruction += f"Take the {stair_location} to floor {target_floor}"
+                    
                 elif segment.get('type') == 'arrive':
-                    instructions.append(f"{i+1}. You have arrived at your destination")
+                    destination = segment.get('destination', 'your destination')
+                    step_instruction += f"You have arrived at {destination}"
+                    
+                instructions.append(step_instruction)
             else:
-                instructions.append(f"{i+1}. Continue to next waypoint")
+                instructions.append(f"Step {i+1}: Continue to next waypoint")
+        
+        # Add final arrival confirmation (no duplicate step numbering)
+        if segments:
+            destination_info = "your destination"
+            if hasattr(route, 'destination') and route.destination in self.fic_locations:
+                dest_data = self.fic_locations[route.destination]
+                destination_info = f"{dest_data.get('description', route.destination)} ({route.destination})"
+            
+            instructions.append(f"Final step: You should now be at {destination_info}")
         
         return instructions
+    
+    def _get_direction_text(self, direction: str) -> str:
+        """Convert direction to more natural language"""
+        direction_map = {
+            'north': 'straight ahead',
+            'south': 'back/reverse direction',
+            'east': 'to the right',
+            'west': 'to the left',
+            'northeast': 'diagonally right-forward',
+            'northwest': 'diagonally left-forward',
+            'southeast': 'diagonally right-back',
+            'southwest': 'diagonally left-back',
+            'forward': 'straight ahead'
+        }
+        return direction_map.get(direction.lower(), direction)
+
+    def _get_crossing_context(self, from_node: str, to_node: str, direction: str) -> str:
+        """Generate context about what areas/rooms you'll be crossing"""
+        from_coords = self._parse_coordinates(self.fic_locations.get(from_node, {}).get('coordinates', '0,0'))
+        to_coords = self._parse_coordinates(self.fic_locations.get(to_node, {}).get('coordinates', '0,0'))
+        
+        # Get floor level
+        from_floor = self.fic_locations.get(from_node, {}).get('floor_level', '0')
+        
+        # Check for notable landmarks or areas between the two points
+        crossing_areas = []
+        
+        # Check if crossing major corridors or open spaces
+        if from_floor == '0':  # Ground floor
+            if self._path_crosses_area(from_coords, to_coords, [(39, 4), (39, 10)]):  # Main entrance area
+                crossing_areas.append("passing by the main entrance area")
+            elif self._path_crosses_area(from_coords, to_coords, [(22, 2), (22, 3)]):  # Toilet corridor
+                crossing_areas.append("passing through the restroom corridor")
+            elif self._path_crosses_area(from_coords, to_coords, [(25, 5), (45, 5)]):  # Lecture room corridor
+                crossing_areas.append("crossing through the lecture room corridor")
+            elif self._path_crosses_area(from_coords, to_coords, [(25, 2), (45, 2)]):  # Laboratory corridor
+                crossing_areas.append("going through the laboratory corridor")
+                
+        elif from_floor == '1':  # First floor
+            if self._path_crosses_area(from_coords, to_coords, [(150, 30), (170, 30)]):  # Central open space
+                crossing_areas.append("crossing through the central open space")
+            elif self._path_crosses_area(from_coords, to_coords, [(85, 30), (100, 30)]):  # Main corridor
+                crossing_areas.append("along the main corridor")
+            elif self._path_crosses_area(from_coords, to_coords, [(150, 5), (180, 5)]):  # Lecture room corridor
+                crossing_areas.append("through the lecture room corridor")
+            elif self._path_crosses_area(from_coords, to_coords, [(150, 55), (180, 55)]):  # Laboratory corridor
+                crossing_areas.append("via the laboratory corridor")
+        
+        # Check if passing notable facilities
+        if self._path_near_facilities(from_coords, to_coords, from_floor):
+            facilities = self._get_nearby_facilities(from_coords, to_coords, from_floor)
+            if facilities:
+                crossing_areas.append(f"near {facilities}")
+        
+        if crossing_areas:
+            return f"({', '.join(crossing_areas)})"
+        
+        return ""
+
+    def _path_crosses_area(self, from_coords: tuple, to_coords: tuple, area_coords: list) -> bool:
+        """Check if the path between two points crosses through a specific area"""
+        # Simple geometric check - if the path line intersects the area
+        x1, y1 = from_coords
+        x2, y2 = to_coords
+        
+        # Check if path intersects with the area (simplified)
+        for ax, ay in area_coords:
+            # Check if any area point is close to the path line
+            if self._point_near_line(x1, y1, x2, y2, ax, ay, threshold=5.0):
+                return True
+        return False
+
+    def _point_near_line(self, x1: float, y1: float, x2: float, y2: float, 
+                        px: float, py: float, threshold: float = 5.0) -> bool:
+        """Check if a point is near a line segment"""
+        # Calculate distance from point to line
+        A = y2 - y1
+        B = x1 - x2
+        C = x2 * y1 - x1 * y2
+        
+        if A == 0 and B == 0:
+            return False
+        
+        distance = abs(A * px + B * py + C) / (A * A + B * B) ** 0.5
+        return distance <= threshold
+
+    def _path_near_facilities(self, from_coords: tuple, to_coords: tuple, floor: str) -> bool:
+        """Check if path goes near important facilities"""
+        # Get facilities on the same floor
+        facilities = {k: v for k, v in self.fic_locations.items() 
+                     if v.get('floor_level') == floor and v.get('type') == 'facility'}
+        
+        for facility_id, facility_info in facilities.items():
+            facility_coords = self._parse_coordinates(facility_info.get('coordinates', '0,0'))
+            if self._point_near_line(from_coords[0], from_coords[1], 
+                                    to_coords[0], to_coords[1], 
+                                    facility_coords[0], facility_coords[1], 
+                                    threshold=8.0):
+                return True
+        return False
+
+    def _get_nearby_facilities(self, from_coords: tuple, to_coords: tuple, floor: str) -> str:
+        """Get names of nearby facilities along the path"""
+        facilities = {k: v for k, v in self.fic_locations.items() 
+                     if v.get('floor_level') == floor and v.get('type') == 'facility'}
+        
+        nearby = []
+        for facility_id, facility_info in facilities.items():
+            facility_coords = self._parse_coordinates(facility_info.get('coordinates', '0,0'))
+            if self._point_near_line(from_coords[0], from_coords[1], 
+                                    to_coords[0], to_coords[1], 
+                                    facility_coords[0], facility_coords[1], 
+                                    threshold=8.0):
+                nearby.append(facility_info.get('description', facility_id))
+        
+        if len(nearby) == 1:
+            return nearby[0]
+        elif len(nearby) > 1:
+            return f"{', '.join(nearby[:-1])}, and {nearby[-1]}"
+        return ""
     
     def _create_fallback_route(self, destination: Dict[str, Any]):
         """Create a simple fallback route when main routing fails."""
@@ -876,31 +1026,58 @@ class FICTNavigationSystem:
         return segments
     
     def _generate_segment_instructions(self, from_node: str, to_node: str, edge_data: Dict) -> str:
-        """Generate human-readable instructions for a route segment"""
+        """Generate human-readable instructions for a route segment with specific location names"""
         direction = edge_data.get('direction', 'forward')
         distance = edge_data.get('distance', 10.0)
         
-        # Get node types for context (with safety checks)
-        from_type = self.node_data.get(from_node, None)
-        to_type = self.node_data.get(to_node, None)
+        # Get location information for better context
+        from_location = self.fic_locations.get(from_node, {})
+        to_location = self.fic_locations.get(to_node, {})
         
-        from_type_name = from_type.node_type if from_type else 'location'
-        to_type_name = to_type.node_type if to_type else 'location'
+        from_description = from_location.get('description', from_node)
+        to_description = to_location.get('description', to_node)
+        from_type = from_location.get('type', 'location')
+        to_type = to_location.get('type', 'location')
         
-        instructions = f"Go {direction} for {distance:.1f} meters"
+        # Build contextual instruction
+        instruction_parts = []
         
-        # Add context-specific instructions
-        if from_type_name == 'intersection':
-            instructions += f" from the {from_type_name}"
-        elif from_type_name == 'landmark':
-            instructions += f" past the {from_type_name}"
+        # Starting context
+        if from_type in ['office', 'lecture_room', 'laboratory']:
+            instruction_parts.append(f"From {from_description} ({from_node})")
+        elif from_type == 'corridor':
+            instruction_parts.append(f"From the {from_description}")
+        elif from_type == 'entrance':
+            instruction_parts.append(f"From {from_description}")
+        elif from_type == 'stairs':
+            instruction_parts.append(f"From {from_description}")
+        else:
+            instruction_parts.append(f"From {from_node}")
         
-        if to_type_name == 'landmark':
-            instructions += f" toward the {to_type_name}"
-        elif to_type_name == 'exit':
-            instructions += f" to the {to_type_name}"
+        # Direction and distance
+        direction_text = self._get_direction_text(direction)
+        instruction_parts.append(f"go {direction_text} for {distance:.1f} meters")
         
-        return instructions
+        # Destination context
+        if to_type in ['office', 'lecture_room', 'laboratory']:
+            instruction_parts.append(f"to {to_description} ({to_node})")
+        elif to_type == 'corridor':
+            instruction_parts.append(f"to the {to_description}")
+        elif to_type == 'entrance':
+            instruction_parts.append(f"to {to_description}")
+        elif to_type == 'stairs':
+            instruction_parts.append(f"to {to_description}")
+        elif to_type == 'facility':
+            instruction_parts.append(f"towards {to_description} ({to_node})")
+        else:
+            instruction_parts.append(f"to {to_node}")
+        
+        # Add room crossing context if passing through significant areas
+        crossing_context = self._get_crossing_context(from_node, to_node, direction)
+        if crossing_context:
+            instruction_parts.append(crossing_context)
+        
+        return ", ".join(instruction_parts)
     
     def _generate_accessibility_notes(self, edge_data: Dict) -> str:
         """Generate accessibility notes for a route segment"""
@@ -954,4 +1131,3 @@ class FICTNavigationSystem:
                 summary += f"   {segment.accessibility_notes}\n"
         
         return summary
-
