@@ -22,6 +22,12 @@ cd IndoorNavProj
 pip install -r requirements.txt
 ```
 
+## Generate QR Code
+```bash
+python generate_fic_building_qr
+```
+
+
 ## Usage
 
 The application can be run in two modes:
@@ -115,3 +121,4 @@ IndoorNavProj/
 ## Future Improvements
 
 -   **Android Application**: Develop an Android-compatible version of the application for mobile use.
+
